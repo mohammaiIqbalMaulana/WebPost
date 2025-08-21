@@ -141,7 +141,7 @@ router.get('/update', async (req, res) => {
     res.render('reports/update', {
       reports: emptyTodayReports,
       allReportsCount: allReports.length,
-      todayReportsCount: todayReports.length,
+      todayReportsCount: total,
       title: "Update Reports (Hari Ini Saja)",
       pagination: {
         totalItems: total,

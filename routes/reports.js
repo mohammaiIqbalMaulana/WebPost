@@ -92,9 +92,6 @@ router.get('/update', async (req, res) => {
     const today = new Date();
     const todayString = today.toISOString().split('T')[0]; // YYYY-MM-DD format
 
-<<<<<<< HEAD
-    // Get reports posted today only
-=======
     // Pagination params
     const allowedPerPage = [5, 10, 50, 100];
     const page = Math.max(parseInt(req.query.page) || 1, 1);
@@ -111,7 +108,6 @@ router.get('/update', async (req, res) => {
     const offset = (currentPage - 1) * perPage;
 
     // Get paginated reports posted today only
->>>>>>> 2e04b0238cbeba19af1017f5f9bf04b8998093ec
     const [todayReports] = await db.query(
       `SELECT id, judul, post_url, post_date 
        FROM reports 
@@ -120,11 +116,11 @@ router.get('/update', async (req, res) => {
        LIMIT ? OFFSET ?`,
       [todayString, perPage, offset]
     );
-
+    
     // Also get reports from last 30 days for reference (but not editable)
     const cutoffDate = new Date();
     cutoffDate.setDate(today.getDate() - 30);
-
+    
     const [allReports] = await db.query(
       `SELECT id, judul, post_url, post_date 
        FROM reports 
@@ -190,7 +186,7 @@ router.post('/update', async (req, res) => {
         save_count[i],
         follower_count[i]
       ];
-
+      
       // Validasi semua field harus diisi
       for (let j = 0; j < fieldValues.length; j++) {
         if (!fieldValues[j] || fieldValues[j] === '' || parseInt(fieldValues[j]) < 0) {
@@ -299,9 +295,9 @@ router.get('/analytics', async (req, res) => {
 
     // Calculate engagement rate for each report
     const analyticsData = reports.map(report => {
-      const totalEngagements = (report.like_count || 0) + (report.comment_count || 0) +
-        (report.share_count || 0) + (report.save_count || 0);
-      const engagementRate = report.follower_count > 0
+      const totalEngagements = (report.like_count || 0) + (report.comment_count || 0) + 
+                              (report.share_count || 0) + (report.save_count || 0);
+      const engagementRate = report.follower_count > 0 
         ? ((totalEngagements / report.follower_count) * 100).toFixed(2)
         : 0;
 
@@ -336,7 +332,7 @@ router.get('/analytics', async (req, res) => {
 router.post('/update-target', async (req, res) => {
   try {
     const { report_id, target_engagement } = req.body;
-
+    
     if (!report_id || target_engagement === undefined) {
       return res.redirect('/reports/analytics?target_saved=0&msg=Data%20tidak%20lengkap');
     }

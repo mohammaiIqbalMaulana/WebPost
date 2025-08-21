@@ -23,26 +23,6 @@
         <input type="hidden" name="page" value="1">
     </form>
 
-    <nav>
-        <ul class="pagination mb-0">
-            <li class="page-item <%= pagination.currentPage === 1 ? 'disabled' : '' %>">
-                <a class="page-link" href="?page=<%= pagination.currentPage - 1 %>&perPage=<%= pagination.perPage %>">
-                    <i class="bi bi-chevron-left"></i>
-                </a>
-            </li>
-            <% for (let p = 1; p <= pagination.totalPages; p++) { %>
-                <li class="page-item <%= p === pagination.currentPage ? 'active' : '' %>">
-                    <a class="page-link" href="?page=<%= p %>&perPage=<%= pagination.perPage %>"><%= p %></a>
-                </li>
-            <% } %>
-            <li class="page-item <%= pagination.currentPage === pagination.totalPages ? 'disabled' : '' %>">
-                <a class="page-link" href="?page=<%= pagination.currentPage + 1 %>&perPage=<%= pagination.perPage %>">
-                    <i class="bi bi-chevron-right"></i>
-                </a>
-            </li>
-        </ul>
-    </nav>
-
     <div class="text-muted">
         Menampilkan <strong><%= Math.min(pagination.totalItems, pagination.offset + reports.length) %></strong> dari <strong><%= pagination.totalItems %></strong> data
     </div>
@@ -176,7 +156,27 @@
             <% } %>
         </tbody>
     </table>
+    <nav>
+        <ul class="pagination mb-0">
+            <li class="page-item <%= pagination.currentPage === 1 ? 'disabled' : '' %>">
+                <a class="page-link" href="?page=<%= pagination.currentPage - 1 %>&perPage=<%= pagination.perPage %>">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+            <% for (let p = 1; p <= pagination.totalPages; p++) { %>
+                <li class="page-item <%= p === pagination.currentPage ? 'active' : '' %>">
+                    <a class="page-link" href="?page=<%= p %>&perPage=<%= pagination.perPage %>"><%= p %></a>
+                </li>
+            <% } %>
+            <li class="page-item <%= pagination.currentPage === pagination.totalPages ? 'disabled' : '' %>">
+                <a class="page-link" href="?page=<%= pagination.currentPage + 1 %>&perPage=<%= pagination.perPage %>">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
 </div>
+
 
 <% if (reports.length > 0) { %>
 <div class="row mt-4">

@@ -45,11 +45,25 @@ router.post('/add', async (req, res) => {
     judul = newJudul;
   }
 
+  // Function to process numeric fields - convert empty to NULL
+  const processNumericField = (value) => {
+    if (value === '' || value === undefined || value === null) return null;
+    const num = parseInt(value);
+    return isNaN(num) ? null : num;
+  };
+
+  const processedLike = processNumericField(like_count);
+  const processedComment = processNumericField(comment_count);
+  const processedView = processNumericField(view_count);
+  const processedShare = processNumericField(share_count);
+  const processedSave = processNumericField(save_count);
+  const processedFollower = processNumericField(follower_count);
+
   await db.query(
     `INSERT INTO reports 
     (platform, judul, post_url, like_count, comment_count, view_count, share_count, save_count, follower_count, post_date, report_date) 
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURDATE())`,
-    [platform, judul, post_url, like_count, comment_count, view_count, share_count, save_count, follower_count, post_date]
+    [platform, judul, post_url, processedLike, processedComment, processedView, processedShare, processedSave, processedFollower, post_date]
   );
 
   res.redirect('/reports');
@@ -106,25 +120,13 @@ router.post('/update', async (req, res) => {
       return res.status(400).send("Tidak ada data dikirim");
     }
 
-    // Validasi semua field required
-    const requiredFields = [like_count, comment_count, view_count, share_count, save_count, follower_count];
-    for (let i = 0; i < ids.length; i++) {
-      const fieldValues = [
-        like_count[i],
-        comment_count[i],
-        view_count[i],
-        share_count[i],
-        save_count[i],
-        follower_count[i]
-      ];
-      
-      // Validasi semua field harus diisi
-      for (let j = 0; j < fieldValues.length; j++) {
-        if (!fieldValues[j] || fieldValues[j] === '' || parseInt(fieldValues[j]) < 0) {
-          return res.status(400).send(`Field ${['like_count', 'comment_count', 'view_count', 'share_count', 'save_count', 'follower_count'][j]} untuk ID ${ids[i]} tidak valid atau kosong`);
-        }
-      }
-    }
+    // Function to process numeric fields - convert empty to NULL, validate negative
+    const processNumericField = (value) => {
+      if (value === '' || value === undefined || value === null) return null;
+      const num = parseInt(value);
+      if (isNaN(num) || num < 0) return null;
+      return num;
+    };
 
     let updatedCount = 0;
     let errors = [];
@@ -133,22 +135,26 @@ router.post('/update', async (req, res) => {
     for (let i = 0; i < ids.length; i++) {
       try {
         const id = parseInt(ids[i]);
-        const like = parseInt(like_count[i]);
-        const comment = parseInt(comment_count[i]);
-        const view = parseInt(view_count[i]);
-        const share = parseInt(share_count[i]);
-        const save = parseInt(save_count[i]);
-        const follower = parseInt(follower_count[i]);
-
+        
         // Validasi ID
         if (!id || id <= 0) {
           errors.push(`ID tidak valid: ${ids[i]}`);
           continue;
         }
 
-        // Validasi nilai tidak boleh negatif
-        if (like < 0 || comment < 0 || view < 0 || share < 0 || save < 0 || follower < 0) {
-          errors.push(`Nilai negatif terdeteksi untuk ID ${id}`);
+        // Process all numeric fields
+        const like = processNumericField(like_count[i]);
+        const comment = processNumericField(comment_count[i]);
+        const view = processNumericField(view_count[i]);
+        const share = processNumericField(share_count[i]);
+        const save = processNumericField(save_count[i]);
+        const follower = processNumericField(follower_count[i]);
+
+        // Check if at least one field has a value (not all empty)
+        const hasValue = [like, comment, view, share, save, follower].some(val => val !== null);
+        
+        if (!hasValue) {
+          // Skip this record if all fields are empty
           continue;
         }
 

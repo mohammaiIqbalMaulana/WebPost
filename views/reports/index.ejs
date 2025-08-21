@@ -2,35 +2,7 @@
     <%= title %>
 </h1>
 
-<!-- Auto-dismiss Success Notification -->
-<% if (updated && parseInt(updated) > 0) { %>
-    <div class="alert alert-success alert-dismissible fade show auto-dismiss" role="alert" data-timeout="5000">
-        <i class="fas fa-check-circle me-2"></i>
-        <strong>Berhasil!</strong> <%= updated %> laporan telah diperbarui.
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        <div class="progress mt-2" style="height: 3px;">
-            <div class="progress-bar bg-success progress-timer" role="progressbar" style="width: 100%;"></div>
-        </div>
-    </div>
-<% } %>
 
-<!-- Auto-dismiss Warning Notification -->
-<% if (typeof errors !== 'undefined' && parseInt(errors) > 0) { %>
-    <div class="alert alert-warning alert-dismissible fade show auto-dismiss" role="alert" data-timeout="7000">
-        <i class="fas fa-exclamation-triangle me-2"></i>
-        <strong>Peringatan!</strong> 
-        <% if (parseInt(updated) > 0) { %>
-            <%= updated %> laporan berhasil diupdate, namun <%= errors %> laporan mungkin tidak terupdate.
-        <% } else { %>
-            <%= errors %> laporan tidak dapat diupdate.
-        <% } %>
-        Silakan coba lagi atau periksa data.
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        <div class="progress mt-2" style="height: 3px;">
-            <div class="progress-bar bg-warning progress-timer" role="progressbar" style="width: 100%;"></div>
-        </div>
-    </div>
-<% } %>
 
 <div class="d-flex gap-2 mb-3">
     <a href="/reports/add" class="btn btn-primary">
@@ -77,19 +49,18 @@
                                 <i class="fas fa-external-link-alt"></i> Lihat
                             </a>
                         </td>
-                        <td><%= Number(report.like_count).toLocaleString() %></td>
-                        <td><%= Number(report.comment_count).toLocaleString() %></td>
-                        <td><%= Number(report.view_count).toLocaleString() %></td>
-                        <td><%= Number(report.share_count).toLocaleString() %></td>
-                        <td><%= Number(report.save_count).toLocaleString() %></td>
-                        <td><%= Number(report.follower_count).toLocaleString() %></td>
+                        <td><%= report.like_count !== null ? Number(report.like_count).toLocaleString() : '-' %></td>
+                        <td><%= report.comment_count !== null ? Number(report.comment_count).toLocaleString() : '-' %></td>
+                        <td><%= report.view_count !== null ? Number(report.view_count).toLocaleString() : '-' %></td>
+                        <td><%= report.share_count !== null ? Number(report.share_count).toLocaleString() : '-' %></td>
+                        <td><%= report.save_count !== null ? Number(report.save_count).toLocaleString() : '-' %></td>
+                        <td><%= report.follower_count !== null ? Number(report.follower_count).toLocaleString() : '-' %></td>
                         <td><%= formatDate(report.post_date) %></td>
                         <td>
-                            <a href="/reports/delete/<%= report.id %>" 
-                               class="btn btn-danger btn-sm"
-                               onclick="return confirm('Yakin ingin hapus laporan ini?')">
+                            <button class="btn btn-danger btn-sm" 
+                                    onclick="confirmDelete('<%= report.id %>', '<%= report.judul %>')">
                                 <i class="fas fa-trash"></i> Hapus
-                            </a>
+                            </button>
                         </td>
                     </tr>
                 <% }) %>
@@ -107,78 +78,124 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Auto-dismiss notifications
-    const autoDismissAlerts = document.querySelectorAll('.auto-dismiss');
+    // Check for URL parameters and show appropriate notifications
+    const urlParams = new URLSearchParams(window.location.search);
+    const updated = urlParams.get('updated');
+    const errors = urlParams.get('errors');
     
-    autoDismissAlerts.forEach(alert => {
-        const timeout = parseInt(alert.getAttribute('data-timeout')) || 5000;
-        const progressBar = alert.querySelector('.progress-timer');
-        let timeoutId;
-        
-        if (progressBar) {
-            // Animate progress bar
-            progressBar.style.transition = `width ${timeout}ms linear`;
-            setTimeout(() => {
-                progressBar.style.width = '0%';
-            }, 100);
-        }
-        
-        // Auto close alert function
-        const autoClose = () => {
-            try {
-                if (alert && alert.parentNode) {
-                    alert.classList.remove('show');
-                    setTimeout(() => {
-                        if (alert && alert.parentNode) {
-                            alert.remove();
-                        }
-                    }, 150);
+    if (updated && parseInt(updated) > 0) {
+        if (errors && parseInt(errors) > 0) {
+            // Mixed result - some success, some errors
+            Swal.fire({
+                title: 'Sebagian Berhasil!',
+                html: `
+                    <div class="text-start">
+                        <p><i class="fas fa-check-circle text-success me-2"></i><strong>${updated}</strong> laporan berhasil diupdate</p>
+                        <p><i class="fas fa-exclamation-triangle text-warning me-2"></i><strong>${errors}</strong> laporan mungkin tidak terupdate</p>
+                        <small class="text-muted">Silakan coba lagi atau periksa data yang bermasalah</small>
+                    </div>
+                `,
+                icon: 'warning',
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#ffc107',
+                timer: 8000,
+                timerProgressBar: true,
+                showClass: {
+                    popup: 'animate__animated animate__fadeInDown'
+                },
+                hideClass: {
+                    popup: 'animate__animated animate__fadeOutUp'
                 }
-            } catch (error) {
-                console.log('Alert already removed');
-            }
-        };
-        
-        // Set auto close timer
-        timeoutId = setTimeout(autoClose, timeout);
-        
-        // Handle manual close button
-        const closeButton = alert.querySelector('.btn-close');
-        if (closeButton) {
-            closeButton.addEventListener('click', (e) => {
-                e.preventDefault();
-                clearTimeout(timeoutId);
-                autoClose();
+            });
+        } else {
+            // Pure success
+            Swal.fire({
+                title: 'Berhasil!',
+                text: `${updated} laporan telah diperbarui dengan sukses`,
+                icon: 'success',
+                confirmButtonText: 'Mantap!',
+                confirmButtonColor: '#198754',
+                timer: 5000,
+                timerProgressBar: true,
+                showClass: {
+                    popup: 'animate__animated animate__bounceIn'
+                },
+                hideClass: {
+                    popup: 'animate__animated animate__fadeOutUp'
+                }
             });
         }
-        
-        // Pause timer on hover
-        let isPaused = false;
-        let remainingTime = timeout;
-        let startTime = Date.now();
-        
-        alert.addEventListener('mouseenter', () => {
-            if (!isPaused) {
-                clearTimeout(timeoutId);
-                remainingTime = timeout - (Date.now() - startTime);
-                isPaused = true;
-                if (progressBar) {
-                    progressBar.style.animationPlayState = 'paused';
-                }
+    } else if (errors && parseInt(errors) > 0) {
+        // Pure error
+        Swal.fire({
+            title: 'Gagal!',
+            text: `${errors} laporan tidak dapat diupdate. Silakan periksa data dan coba lagi.`,
+            icon: 'error',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#dc3545',
+            timer: 7000,
+            timerProgressBar: true,
+            showClass: {
+                popup: 'animate__animated animate__shakeX'
+            },
+            hideClass: {
+                popup: 'animate__animated animate__fadeOutUp'
             }
         });
-        
-        alert.addEventListener('mouseleave', () => {
-            if (isPaused) {
-                startTime = Date.now();
-                timeoutId = setTimeout(autoClose, remainingTime);
-                isPaused = false;
-                if (progressBar) {
-                    progressBar.style.animationPlayState = 'running';
-                }
-            }
-        });
-    });
+    }
+    
+    // Clean URL after showing notification
+    if (updated || errors) {
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+    }
 });
+
+// Function for delete confirmation
+function confirmDelete(id, judul) {
+    Swal.fire({
+        title: 'Konfirmasi Hapus',
+        html: `
+            <div class="text-start">
+                <p>Apakah Anda yakin ingin menghapus laporan ini?</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Judul:</strong> ${judul}
+                </div>
+                <small class="text-muted">Tindakan ini tidak dapat dibatalkan!</small>
+            </div>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="fas fa-trash me-1"></i> Ya, Hapus!',
+        cancelButtonText: '<i class="fas fa-times me-1"></i> Batal',
+        reverseButtons: true,
+        showClass: {
+            popup: 'animate__animated animate__zoomIn'
+        },
+        hideClass: {
+            popup: 'animate__animated animate__zoomOut'
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Show loading
+            Swal.fire({
+                title: 'Menghapus...',
+                text: 'Sedang memproses permintaan',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Redirect to delete
+            window.location.href = `/reports/delete/${id}`;
+        }
+    });
+}
 </script>
 

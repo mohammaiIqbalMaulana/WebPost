@@ -138,9 +138,6 @@
             </div>
             
             <div class="d-flex gap-2">
-                <button type="button" class="btn btn-outline-secondary" onclick="clearAllFields()">
-                    <i class="fas fa-eraser me-1"></i> Kosongkan Semua
-                </button>
                 <a href="/reports" class="btn btn-secondary">
                     <i class="fas fa-arrow-left me-1"></i> Batal
                 </a>
@@ -208,12 +205,24 @@ function validateForm() {
     
     // Validation messages
     if (totalReports === 0) {
-        alert('❌ Silakan isi minimal satu laporan dengan data yang valid');
+        Swal.fire({
+            title: 'Tidak Ada Data',
+            text: 'Silakan isi minimal satu laporan dengan data yang valid',
+            icon: 'warning',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#ffc107'
+        });
         return false;
     }
     
     if (hasEmptyFields) {
-        alert('❌ Ada laporan yang memiliki field kosong. Silakan isi semua field untuk laporan yang ingin diupdate, atau kosongkan semua field untuk melewati laporan tersebut.');
+        Swal.fire({
+            title: 'Field Kosong',
+            text: 'Ada laporan yang memiliki field kosong. Silakan isi semua field untuk laporan yang ingin diupdate.',
+            icon: 'warning',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#ffc107'
+        });
         return false;
     }
     
@@ -227,27 +236,49 @@ function validateForm() {
     });
     
     if (hasNegative) {
-        alert('⚠️ Nilai negatif telah otomatis diubah menjadi 0');
+        Swal.fire({
+            title: 'Nilai Diperbaiki',
+            text: 'Nilai negatif telah otomatis diubah menjadi 0',
+            icon: 'info',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#0dcaf0',
+            timer: 3000
+        });
     }
     
-    // Confirmation message
-    const confirmMessage = `📝 Konfirmasi Update\n\n` +
-        `• ${validReports} laporan akan diupdate\n` +
-        `• Semua field akan diisi dengan nilai yang dimasukkan (termasuk 0)\n` +
-        `• Data yang kosong akan dilewati\n\n` +
-        `Apakah Anda yakin ingin melanjutkan?`;
+    // Show confirmation with SweetAlert2
+    Swal.fire({
+        title: '📝 Konfirmasi Update',
+        html: `
+            <div class="text-start">
+                <p><strong>${validReports}</strong> laporan akan diupdate</p>
+                <p>Semua field akan diisi dengan nilai yang dimasukkan (termasuk 0)</p>
+                <p>Data yang kosong akan dilewati</p>
+                <br>
+                <p class="text-muted">Apakah Anda yakin ingin melanjutkan?</p>
+            </div>
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#198754',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="fas fa-save me-1"></i> Ya, Update!',
+        cancelButtonText: '<i class="fas fa-times me-1"></i> Batal',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // User confirmed, submit the form
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Menyimpan...';
+            submitBtn.disabled = true;
+            document.getElementById('updateForm').submit();
+        }
+    });
     
-    return confirm(confirmMessage);
+    return false; // Always prevent default form submission
 }
 
-function clearAllFields() {
-    const inputs = document.querySelectorAll('input[type="number"]');
-    inputs.forEach(input => {
-        input.value = '';
-        input.style.backgroundColor = '';
-        input.style.borderColor = '';
-    });
-}
+
 
 // Initialize form
 document.addEventListener('DOMContentLoaded', function() {
@@ -302,27 +333,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Ctrl+R to clear (override refresh)
-        if (e.ctrlKey && e.key === 'r') {
-            e.preventDefault();
-            clearAllFields();
-        }
+
     });
 });
 
-// Show progress while submitting
+// Handle form submission
 document.getElementById('updateForm')?.addEventListener('submit', function(e) {
-    const submitBtn = document.getElementById('submitBtn');
-    
-    // Check if form validation passed
-    if (!validateForm()) {
-        e.preventDefault(); // Prevent form submission
-        return false;
-    }
-    
-    // Only show loading state if validation passed
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Menyimpan...';
-    submitBtn.disabled = true;
+    e.preventDefault(); // Always prevent default submission
+    validateForm(); // Let validation handle the submission
 });
 </script>
 

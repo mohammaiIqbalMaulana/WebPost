@@ -45,11 +45,25 @@ router.post('/add', async (req, res) => {
     judul = newJudul;
   }
 
+  // Function to process numeric fields - convert empty to NULL
+  const processNumericField = (value) => {
+    if (value === '' || value === undefined || value === null) return null;
+    const num = parseInt(value);
+    return isNaN(num) ? null : num;
+  };
+
+  const processedLike = processNumericField(like_count);
+  const processedComment = processNumericField(comment_count);
+  const processedView = processNumericField(view_count);
+  const processedShare = processNumericField(share_count);
+  const processedSave = processNumericField(save_count);
+  const processedFollower = processNumericField(follower_count);
+
   await db.query(
     `INSERT INTO reports 
     (platform, judul, post_url, like_count, comment_count, view_count, share_count, save_count, follower_count, post_date, report_date) 
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURDATE())`,
-    [platform, judul, post_url, like_count, comment_count, view_count, share_count, save_count, follower_count, post_date]
+    [platform, judul, post_url, processedLike, processedComment, processedView, processedShare, processedSave, processedFollower, post_date]
   );
 
   res.redirect('/reports');

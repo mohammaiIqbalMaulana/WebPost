@@ -91,14 +91,30 @@ router.get('/update', async (req, res) => {
   try {
     const today = new Date();
     const todayString = today.toISOString().split('T')[0]; // YYYY-MM-DD format
-    
-    // Get reports posted today only
+
+    // Pagination params
+    const allowedPerPage = [5, 10, 50, 100];
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const perPageRaw = parseInt(req.query.perPage) || 10;
+    const perPage = allowedPerPage.includes(perPageRaw) ? perPageRaw : 10;
+
+    // Count today's reports
+    const [[{ total }]] = await db.query(
+      `SELECT COUNT(*) AS total FROM reports WHERE DATE(post_date) = ?`,
+      [todayString]
+    );
+    const totalPages = Math.max(Math.ceil(total / perPage), 1);
+    const currentPage = Math.min(page, totalPages);
+    const offset = (currentPage - 1) * perPage;
+
+    // Get paginated reports posted today only
     const [todayReports] = await db.query(
       `SELECT id, judul, post_url, post_date 
        FROM reports 
        WHERE DATE(post_date) = ? 
-       ORDER BY post_date DESC`,
-      [todayString]
+       ORDER BY post_date DESC 
+       LIMIT ? OFFSET ?`,
+      [todayString, perPage, offset]
     );
     
     // Also get reports from last 30 days for reference (but not editable)
@@ -126,7 +142,15 @@ router.get('/update', async (req, res) => {
       reports: emptyTodayReports,
       allReportsCount: allReports.length,
       todayReportsCount: todayReports.length,
-      title: "Update Reports (Hari Ini Saja)"
+      title: "Update Reports (Hari Ini Saja)",
+      pagination: {
+        totalItems: total,
+        totalPages,
+        currentPage,
+        perPage,
+        allowedPerPage,
+        offset
+      }
     });
   } catch (err) {
     console.error("Error GET /update:", err);
@@ -225,6 +249,26 @@ router.post('/update', async (req, res) => {
 // 📌 ANALYTICS: Engagement Rate & Target Setting
 router.get('/analytics', async (req, res) => {
   try {
+    // Pagination params
+    const allowedPerPage = [5, 10, 50, 100];
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const perPageRaw = parseInt(req.query.perPage) || 10;
+    const perPage = allowedPerPage.includes(perPageRaw) ? perPageRaw : 10;
+
+    // Count with same filters
+    const [[{ total }]] = await db.query(`
+      SELECT COUNT(*) AS total
+      FROM reports 
+      WHERE like_count IS NOT NULL 
+        AND comment_count IS NOT NULL 
+        AND view_count IS NOT NULL
+        AND follower_count IS NOT NULL
+        AND follower_count > 0
+    `);
+    const totalPages = Math.max(Math.ceil(total / perPage), 1);
+    const currentPage = Math.min(page, totalPages);
+    const offset = (currentPage - 1) * perPage;
+
     const [reports] = await db.query(`
       SELECT 
         id, 
@@ -246,7 +290,8 @@ router.get('/analytics', async (req, res) => {
         AND follower_count IS NOT NULL
         AND follower_count > 0
       ORDER BY post_date DESC
-    `);
+      LIMIT ? OFFSET ?
+    `, [perPage, offset]);
 
     // Calculate engagement rate for each report
     const analyticsData = reports.map(report => {
@@ -267,7 +312,15 @@ router.get('/analytics', async (req, res) => {
       reports: analyticsData,
       formatDate,
       formatDateTime,
-      title: "Analytics & Target Setting"
+      title: "Analytics & Target Setting",
+      pagination: {
+        totalItems: total,
+        totalPages,
+        currentPage,
+        perPage,
+        allowedPerPage,
+        offset
+      }
     });
   } catch (err) {
     console.error("Error GET /analytics:", err);

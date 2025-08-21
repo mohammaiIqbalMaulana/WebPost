@@ -75,7 +75,7 @@
                 <% if (reports.length > 0) { %>
                     <% reports.forEach((report, index) => { %>
                         <tr>
-                            <td class="text-center fw-bold"><%= index + 1 %></td>
+                            <td class="text-center fw-bold"><%= (pagination ? pagination.offset : 0) + index + 1 %></td>
                             <td>
                                 <div class="d-flex flex-column">
                                     <strong style="max-width: 520px; overflow-wrap:anywhere;" title="<%= report.judul %>"><%= report.judul %></strong>
@@ -156,19 +156,46 @@
     </div>
 
     <% if (reports.length > 0) { %>
-        <div class="d-flex justify-content-between align-items-center mt-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 mt-3">
+            <form method="GET" class="d-flex align-items-center gap-2">
+                <label class="text-muted">Tampilkan</label>
+                <select name="perPage" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+                    <% if (typeof pagination !== 'undefined') { pagination.allowedPerPage.forEach(opt => { %>
+                        <option value="<%= opt %>" <%= opt === pagination.perPage ? 'selected' : '' %>><%= opt %></option>
+                    <% }) } %>
+                </select>
+                <span class="text-muted">per halaman</span>
+                <input type="hidden" name="page" value="1">
+            </form>
+
+            <nav>
+                <ul class="pagination mb-0">
+                    <% if (typeof pagination !== 'undefined') { %>
+                    <li class="page-item <%= pagination.currentPage === 1 ? 'disabled' : '' %>">
+                        <a class="page-link" href="?page=<%= pagination.currentPage - 1 %>&perPage=<%= pagination.perPage %>">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                    <% for (let p = 1; p <= pagination.totalPages; p++) { %>
+                        <li class="page-item <%= p === pagination.currentPage ? 'active' : '' %>">
+                            <a class="page-link" href="?page=<%= p %>&perPage=<%= pagination.perPage %>"><%= p %></a>
+                        </li>
+                    <% } %>
+                    <li class="page-item <%= pagination.currentPage === pagination.totalPages ? 'disabled' : '' %>">
+                        <a class="page-link" href="?page=<%= pagination.currentPage + 1 %>&perPage=<%= pagination.perPage %>">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                    <% } %>
+                </ul>
+            </nav>
+
             <div class="text-muted">
-                <i class="bi bi-info-circle me-1"></i>
-                Total <strong><%= reports.length %></strong> laporan untuk diupdate
-            </div>
-            
-            <div class="d-flex gap-2">
-                <a href="/reports" class="btn btn-secondary">
-                    <i class="bi bi-arrow-left me-1"></i> Batal
-                </a>
-                <button type="submit" class="btn btn-success" id="submitBtn">
-                    <i class="bi bi-save me-1"></i> Simpan Perubahan
-                </button>
+                <% if (typeof pagination !== 'undefined') { %>
+                    Menampilkan <strong><%= Math.min(pagination.totalItems, pagination.offset + reports.length) %></strong> dari <strong><%= pagination.totalItems %></strong> data
+                <% } else { %>
+                    Total <strong><%= reports.length %></strong> laporan untuk diupdate
+                <% } %>
             </div>
         </div>
     <% } %>

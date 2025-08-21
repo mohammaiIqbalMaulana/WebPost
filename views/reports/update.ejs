@@ -2,13 +2,40 @@
     <i class="fas fa-edit me-2"></i> <%= title %>
 </h1>
 
-<div class="alert alert-warning alert-dismissible fade show">
-    <i class="fas fa-exclamation-triangle me-2"></i>
-    <strong>Petunjuk:</strong> 
-    Semua kolom Like, Komentar, View, Share, Save, dan Followers <strong>wajib diisi</strong> dengan data terbaru. 
-    Tidak boleh ada field yang kosong.
+<div class="alert alert-info alert-dismissible fade show">
+    <i class="fas fa-clock me-2"></i>
+    <strong>Informasi:</strong> 
+    Hanya laporan yang di-post <strong>hari ini</strong> yang bisa diupdate. 
+    Semua kolom Like, Komentar, View, Share, Save, dan Followers <strong>wajib diisi</strong> dengan data terbaru.
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
+
+<% if (typeof allReportsCount !== 'undefined' && typeof todayReportsCount !== 'undefined') { %>
+<div class="row mb-3">
+    <div class="col-md-6">
+        <div class="card border-primary">
+            <div class="card-body text-center">
+                <h5 class="card-title text-primary">
+                    <i class="fas fa-calendar-day me-2"></i>Hari Ini
+                </h5>
+                <h2 class="text-primary"><%= todayReportsCount %></h2>
+                <small class="text-muted">Laporan bisa diupdate</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card border-secondary">
+            <div class="card-body text-center">
+                <h5 class="card-title text-secondary">
+                    <i class="fas fa-calendar-alt me-2"></i>30 Hari Terakhir
+                </h5>
+                <h2 class="text-secondary"><%= allReportsCount %></h2>
+                <small class="text-muted">Total laporan</small>
+            </div>
+        </div>
+    </div>
+</div>
+<% } %>
 
 <form method="POST" action="/reports/update" onsubmit="return validateForm()" id="updateForm">
     <div class="table-responsive">

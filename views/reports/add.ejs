@@ -1,0 +1,36 @@
+<h1>Tambah Laporan</h1>
+<form method="POST" action="/reports/add">
+  <label>Platform:</label>
+  <select name="platform">
+    <option value="tiktok">Tiktok</option>
+  </select><br>
+
+  <label>Judul:</label>
+  <input type="text" name="judul" required><br>
+
+  <label>URL:</label>
+  <input type="text" name="post_url" required><br>
+
+  <label>Like:</label>
+  <input type="number" name="like_count" value="0"><br>
+
+  <label>Comment:</label>
+  <input type="number" name="comment_count" value="0"><br>
+
+  <label>View:</label>
+  <input type="number" name="view_count" value="0"><br>
+
+  <label>Share:</label>
+  <input type="number" name="share_count" value="0"><br>
+
+  <label>Save:</label>
+  <input type="number" name="save_count" value="0"><br>
+
+  <label>Follower:</label>
+  <input type="number" name="follower_count" value="0"><br>
+
+  <label>Tanggal Postingan:</label>
+  <input type="date" name="post_date" required><br>
+
+  <button type="submit">Simpan</button>
+</form>

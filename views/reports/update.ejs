@@ -1,0 +1,387 @@
+<h1 class="mb-4">
+    <i class="fas fa-edit me-2"></i> <%= title %>
+</h1>
+
+<div class="alert alert-warning alert-dismissible fade show">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    <strong>Petunjuk:</strong> 
+    Semua kolom Like, Komentar, View, Share, Save, dan Followers <strong>wajib diisi</strong> dengan data terbaru. 
+    Tidak boleh ada field yang kosong.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+
+<form method="POST" action="/reports/update" onsubmit="return validateForm()" id="updateForm">
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+            <thead class="table-dark">
+                <tr>
+                    <th width="50">No</th>
+                    <th>Judul</th>
+                    <th width="80">URL</th>
+                    <th width="120">
+                        <i class="fas fa-heart text-danger me-1"></i>
+                        Like <span class="text-warning">*</span>
+                    </th>
+                    <th width="120">
+                        <i class="fas fa-comment text-info me-1"></i>
+                        Komentar <span class="text-warning">*</span>
+                    </th>
+                    <th width="120">
+                        <i class="fas fa-eye text-success me-1"></i>
+                        View <span class="text-warning">*</span>
+                    </th>
+                    <th width="120">
+                        <i class="fas fa-share text-primary me-1"></i>
+                        Share <span class="text-warning">*</span>
+                    </th>
+                    <th width="120">
+                        <i class="fas fa-bookmark text-secondary me-1"></i>
+                        Save <span class="text-warning">*</span>
+                    </th>
+                    <th width="120">
+                        <i class="fas fa-users text-warning me-1"></i>
+                        Followers <span class="text-warning">*</span>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <% if (reports.length > 0) { %>
+                    <% reports.forEach((report, index) => { %>
+                        <tr>
+                            <td class="text-center fw-bold"><%= index + 1 %></td>
+                            <td>
+                                <div class="d-flex flex-column">
+                                    <strong class="text-truncate" style="max-width: 250px;" title="<%= report.judul %>">
+                                        <%= report.judul %>
+                                    </strong>
+                                </div>
+                                <input type="hidden" name="ids[]" value="<%= report.id %>">
+                            </td>
+                            <td class="text-center">
+                                <a href="<%= report.post_url %>" 
+                                   target="_blank" 
+                                   class="btn btn-sm btn-outline-info"
+                                   title="Buka link posting">
+                                    <i class="fas fa-external-link-alt"></i>
+                                </a>
+                            </td>
+                            <td>
+                                <input type="number" 
+                                       name="like_count[]" 
+                                       class="form-control form-control-sm text-center" 
+                                       placeholder="0"
+                                       min="0" 
+                                       data-field="like"
+                                       title="Masukkan jumlah like terbaru">
+                            </td>
+                            <td>
+                                <input type="number" 
+                                       name="comment_count[]" 
+                                       class="form-control form-control-sm text-center"
+                                       placeholder="0"
+                                       min="0" 
+                                       data-field="comment"
+                                       title="Masukkan jumlah komentar terbaru">
+                            </td>
+                            <td>
+                                <input type="number" 
+                                       name="view_count[]" 
+                                       class="form-control form-control-sm text-center" 
+                                       placeholder="0"
+                                       min="0" 
+                                       data-field="view"
+                                       title="Masukkan jumlah view terbaru">
+                            </td>
+                            <td>
+                                <input type="number" 
+                                       name="share_count[]" 
+                                       class="form-control form-control-sm text-center"
+                                       placeholder="0"
+                                       min="0" 
+                                       data-field="share"
+                                       title="Masukkan jumlah share terbaru">
+                            </td>
+                            <td>
+                                <input type="number" 
+                                       name="save_count[]" 
+                                       class="form-control form-control-sm text-center" 
+                                       placeholder="0"
+                                       min="0" 
+                                       data-field="save"
+                                       title="Masukkan jumlah save terbaru">
+                            </td>
+                            <td>
+                                <input type="number" 
+                                       name="follower_count[]" 
+                                       class="form-control form-control-sm text-center"
+                                       placeholder="0"
+                                       min="0" 
+                                       data-field="follower"
+                                       title="Masukkan jumlah follower terbaru">
+                            </td>
+                        </tr>
+                    <% }) %>
+                <% } else { %>
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-4">
+                            <i class="fas fa-calendar-times fa-2x mb-2"></i>
+                            <div>Tidak ada laporan dalam 30 hari terakhir untuk diupdate</div>
+                            <a href="/reports/add" class="btn btn-primary btn-sm mt-2">
+                                <i class="fas fa-plus me-1"></i> Tambah Laporan Baru
+                            </a>
+                        </td>
+                    </tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+
+    <% if (reports.length > 0) { %>
+        <div class="d-flex justify-content-between align-items-center mt-4">
+            <div class="text-muted">
+                <i class="fas fa-info-circle me-1"></i>
+                Total <strong><%= reports.length %></strong> laporan untuk diupdate
+            </div>
+            
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-secondary" onclick="clearAllFields()">
+                    <i class="fas fa-eraser me-1"></i> Kosongkan Semua
+                </button>
+                <a href="/reports" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i> Batal
+                </a>
+                <button type="submit" class="btn btn-success" id="submitBtn">
+                    <i class="fas fa-save me-1"></i> Simpan Perubahan
+                </button>
+            </div>
+        </div>
+    <% } %>
+</form>
+
+<script>
+function validateForm() {
+    const inputs = document.querySelectorAll('input[type="number"]');
+    let validReports = 0;
+    let totalReports = 0;
+    let hasEmptyFields = false;
+    let reportData = [];
+    
+    // Group inputs by report (6 fields per report)
+    const reports = [];
+    const reportInputs = document.querySelectorAll('input[type="number"]');
+    const totalReportsCount = reportInputs.length / 6;
+    
+    for (let i = 0; i < totalReportsCount; i++) {
+        const reportIndex = i;
+        const reportFields = {
+            like: reportInputs[i * 6],
+            comment: reportInputs[i * 6 + 1],
+            view: reportInputs[i * 6 + 2],
+            share: reportInputs[i * 6 + 3],
+            save: reportInputs[i * 6 + 4],
+            follower: reportInputs[i * 6 + 5]
+        };
+        
+        // Check if any field has value (including 0)
+        const hasAnyValue = Object.values(reportFields).some(field => 
+            field.value !== '' && field.value !== null && field.value !== undefined
+        );
+        
+        // Check if all fields are filled
+        const allFieldsFilled = Object.values(reportFields).every(field => 
+            field.value !== '' && field.value !== null && field.value !== undefined
+        );
+        
+        if (hasAnyValue) {
+            totalReports++;
+            
+            if (allFieldsFilled) {
+                validReports++;
+                reportData.push({
+                    report: reportIndex + 1,
+                    fields: Object.values(reportFields).map(f => parseInt(f.value) || 0)
+                });
+            } else {
+                hasEmptyFields = true;
+            }
+        }
+    }
+    
+    // Remove validation styling
+    inputs.forEach(input => {
+        input.classList.remove('is-invalid');
+    });
+    
+    // Validation messages
+    if (totalReports === 0) {
+        alert('❌ Silakan isi minimal satu laporan dengan data yang valid');
+        return false;
+    }
+    
+    if (hasEmptyFields) {
+        alert('❌ Ada laporan yang memiliki field kosong. Silakan isi semua field untuk laporan yang ingin diupdate, atau kosongkan semua field untuk melewati laporan tersebut.');
+        return false;
+    }
+    
+    // Check for negative values
+    let hasNegative = false;
+    inputs.forEach(input => {
+        if (parseInt(input.value) < 0) {
+            input.value = '0';
+            hasNegative = true;
+        }
+    });
+    
+    if (hasNegative) {
+        alert('⚠️ Nilai negatif telah otomatis diubah menjadi 0');
+    }
+    
+    // Confirmation message
+    const confirmMessage = `📝 Konfirmasi Update\n\n` +
+        `• ${validReports} laporan akan diupdate\n` +
+        `• Semua field akan diisi dengan nilai yang dimasukkan (termasuk 0)\n` +
+        `• Data yang kosong akan dilewati\n\n` +
+        `Apakah Anda yakin ingin melanjutkan?`;
+    
+    return confirm(confirmMessage);
+}
+
+function clearAllFields() {
+    const inputs = document.querySelectorAll('input[type="number"]');
+    inputs.forEach(input => {
+        input.value = '';
+        input.style.backgroundColor = '';
+        input.style.borderColor = '';
+    });
+}
+
+// Initialize form
+document.addEventListener('DOMContentLoaded', function() {
+    const inputs = document.querySelectorAll('input[type="number"]');
+    
+    inputs.forEach(input => {
+        // Ensure only positive numbers
+        input.addEventListener('input', function() {
+            if (parseInt(this.value) < 0) {
+                this.value = '';
+            }
+            
+            // Visual feedback for filled fields
+            if (this.value && parseInt(this.value) > 0) {
+                this.style.backgroundColor = '#f0f9ff';
+                this.style.borderColor = '#0ea5e9';
+            } else {
+                this.style.backgroundColor = '';
+                this.style.borderColor = '';
+            }
+        });
+        
+        // Format large numbers on blur
+        input.addEventListener('blur', function() {
+            if (this.value && parseInt(this.value) > 0) {
+                // Add thousand separators for display (optional)
+                // Uncomment if you want thousand separators
+                // const formatted = parseInt(this.value).toLocaleString();
+                // this.setAttribute('title', formatted);
+            }
+        });
+        
+        // Allow paste and auto-format
+        input.addEventListener('paste', function(e) {
+            setTimeout(() => {
+                let value = this.value.replace(/[^\d]/g, ''); // Remove non-digits
+                if (value) {
+                    this.value = value;
+                    this.dispatchEvent(new Event('input'));
+                }
+            }, 0);
+        });
+    });
+    
+    // Add keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Ctrl+S to submit
+        if (e.ctrlKey && e.key === 's') {
+            e.preventDefault();
+            if (document.getElementById('updateForm')) {
+                document.getElementById('updateForm').submit();
+            }
+        }
+        
+        // Ctrl+R to clear (override refresh)
+        if (e.ctrlKey && e.key === 'r') {
+            e.preventDefault();
+            clearAllFields();
+        }
+    });
+});
+
+// Show progress while submitting
+document.getElementById('updateForm')?.addEventListener('submit', function(e) {
+    const submitBtn = document.getElementById('submitBtn');
+    
+    // Check if form validation passed
+    if (!validateForm()) {
+        e.preventDefault(); // Prevent form submission
+        return false;
+    }
+    
+    // Only show loading state if validation passed
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Menyimpan...';
+    submitBtn.disabled = true;
+});
+</script>
+
+<style>
+.table th {
+    border-top: none;
+    font-weight: 600;
+    font-size: 0.875rem;
+    vertical-align: middle;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.form-control-sm {
+    font-size: 0.875rem;
+}
+
+.form-control:focus {
+    border-color: #0ea5e9;
+    box-shadow: 0 0 0 0.2rem rgba(14, 165, 233, 0.25);
+}
+
+.text-truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Custom styling for filled inputs */
+input[type="number"]:not(:placeholder-shown) {
+    font-weight: 500;
+}
+
+/* Remove spinner arrows for cleaner look */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Highlight rows on hover */
+tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+.btn-sm {
+    font-size: 0.75rem;
+}
+
+/* Smooth transitions */
+.form-control, .btn {
+    transition: all 0.2s ease-in-out;
+}
+</style>

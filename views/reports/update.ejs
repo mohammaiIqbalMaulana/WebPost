@@ -194,8 +194,18 @@
                 <% if (typeof pagination !== 'undefined') { %>
                     Menampilkan <strong><%= Math.min(pagination.totalItems, pagination.offset + reports.length) %></strong> dari <strong><%= pagination.totalItems %></strong> data
                 <% } else { %>
+                    <i class="bi bi-info-circle me-1"></i>
                     Total <strong><%= reports.length %></strong> laporan untuk diupdate
                 <% } %>
+            </div>
+
+            <div class="d-flex gap-2">
+                <a href="/reports" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left me-1"></i> Batal
+                </a>
+                <button type="submit" class="btn btn-success" id="submitBtn">
+                    <i class="bi bi-save me-1"></i> Simpan Perubahan
+                </button>
             </div>
         </div>
     <% } %>

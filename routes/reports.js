@@ -206,6 +206,87 @@ router.post('/update', async (req, res) => {
   }
 });
 
+// 📌 ANALYTICS: Engagement Rate & Target Setting
+router.get('/analytics', async (req, res) => {
+  try {
+    const [reports] = await db.query(`
+      SELECT 
+        id, 
+        judul, 
+        post_url, 
+        like_count, 
+        comment_count, 
+        view_count, 
+        share_count, 
+        save_count, 
+        follower_count,
+        target_engagement,
+        post_date,
+        updated_at
+      FROM reports 
+      WHERE like_count IS NOT NULL 
+        AND comment_count IS NOT NULL 
+        AND view_count IS NOT NULL
+        AND follower_count IS NOT NULL
+        AND follower_count > 0
+      ORDER BY post_date DESC
+    `);
+
+    // Calculate engagement rate for each report
+    const analyticsData = reports.map(report => {
+      const totalEngagements = (report.like_count || 0) + (report.comment_count || 0) + 
+                              (report.share_count || 0) + (report.save_count || 0);
+      const engagementRate = report.follower_count > 0 
+        ? ((totalEngagements / report.follower_count) * 100).toFixed(2)
+        : 0;
+
+      return {
+        ...report,
+        engagement_rate: parseFloat(engagementRate),
+        total_engagements: totalEngagements
+      };
+    });
+
+    res.render('reports/analytics', {
+      reports: analyticsData,
+      formatDate,
+      formatDateTime,
+      title: "Analytics & Target Setting"
+    });
+  } catch (err) {
+    console.error("Error GET /analytics:", err);
+    res.status(500).send(err.message);
+  }
+});
+
+// 📌 UPDATE TARGET: Save target engagement rate
+router.post('/update-target', async (req, res) => {
+  try {
+    const { report_id, target_engagement } = req.body;
+    
+    // Validate input
+    if (!report_id || target_engagement === undefined) {
+      return res.status(400).json({ success: false, message: 'Data tidak lengkap' });
+    }
+
+    const targetValue = parseFloat(target_engagement) || 0;
+
+    await db.query(
+      "UPDATE reports SET target_engagement = ? WHERE id = ?",
+      [targetValue, report_id]
+    );
+
+    res.json({ 
+      success: true, 
+      message: 'Target berhasil disimpan',
+      target: targetValue 
+    });
+  } catch (err) {
+    console.error("Error updating target:", err);
+    res.status(500).json({ success: false, message: 'Gagal menyimpan target' });
+  }
+});
+
 // 📌 ACTION delete report
 router.get('/delete/:id', async (req, res) => {
   try {

@@ -1,1 +1,0 @@
-# SweetAlert2 Implementation

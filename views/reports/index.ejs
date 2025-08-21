@@ -22,12 +22,12 @@
                 <th>Platform</th>
                 <th>Judul</th>
                 <th>URL</th>
-                <th>Like</th>
-                <th>Komentar</th>
-                <th>View</th>
-                <th>Share</th>
-                <th>Save</th>
-                <th>Followers</th>
+                <th><i class="bi bi-heart-fill text-danger me-2"></i>Like</th>
+                <th width="120"><i class="bi bi-chat-dots-fill text-info me-2"></i>Komentar</th>
+                <th><i class="bi bi-eye-fill text-success me-2"></i>View</th>
+                <th><i class="bi bi-share-fill text-primary me-2"></i>Share</th>
+                <th><i class="bi bi-bookmark-fill text-secondary me-2"></i>Save</th>
+                <th><i class="bi bi-people-fill text-warning me-2"></i>Followers</th>
                 <th>Tanggal Post</th>
                 <th>Terakhir Update</th>
                 <th>Aksi</th>
@@ -48,7 +48,7 @@
                         </td>
                         <td>
                             <a href="<%= report.post_url %>" target="_blank" class="btn btn-sm btn-outline-info">
-                                <i class="bi bi-box-arrow-up-right"></i> Lihat
+                                <i class="bi bi-box-arrow-up-right"></i>
                             </a>
                         </td>
                         <td><%= report.like_count !== null ? Number(report.like_count).toLocaleString() : '-' %></td>
@@ -74,7 +74,7 @@
                         <td>
                             <button class="btn btn-danger btn-sm" 
                                     onclick="confirmDelete('<%= report.id %>', '<%= report.judul %>')">
-                                <i class="bi bi-trash"></i> Hapus
+                                <i class="bi bi-trash"></i>
                             </button>
                         </td>
                     </tr>

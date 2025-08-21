@@ -4,21 +4,21 @@
 
 <div class="d-flex gap-2 mb-3">
     <a href="/reports/add" class="btn btn-primary">
-        <i class="fas fa-plus me-1"></i> Tambah Data
+        <i class="bi bi-plus-circle me-1"></i> Tambah Data
     </a>
     <a href="/reports/update" class="btn btn-warning">
-        <i class="fas fa-edit me-1"></i> Update Data
+        <i class="bi bi-pencil-square me-1"></i> Update Data
     </a>
     <a href="/reports/analytics" class="btn btn-success">
-        <i class="fas fa-chart-line me-1"></i> Analytics & Target
+        <i class="bi bi-graph-up-arrow me-1"></i> Analytics & Target
     </a>
 </div>
 
 <div class="table-responsive">
-    <table class="table table-bordered table-striped table-hover">
+    <table class="table table-hover align-middle table-bordered shadow-sm">
         <thead class="table-dark">
             <tr>
-                <th>No</th>
+                <th class="text-center">No</th>
                 <th>Platform</th>
                 <th>Judul</th>
                 <th>URL</th>
@@ -37,18 +37,18 @@
             <% if (reports.length > 0) { %>
                 <% reports.forEach((report, index) => { %>
                     <tr>
-                        <td><%= index + 1 %></td>
+                        <td class="text-center"><%= (pagination ? pagination.offset : 0) + index + 1 %></td>
                         <td>
-                            <span class="badge bg-primary">
-                                <%= report.platform.toUpperCase() %>
-                            </span>
+                            <span class="badge rounded-pill text-bg-primary px-3 py-2"><%= report.platform.toUpperCase() %></span>
                         </td>
-                        <td class="text-truncate" style="max-width: 200px;" title="<%= report.judul %>">
-                            <%= report.judul %>
+                        <td>
+                            <div class="fw-semibold" style="max-width: 480px; overflow-wrap:anywhere;">
+                                <%= report.judul %>
+                            </div>
                         </td>
                         <td>
                             <a href="<%= report.post_url %>" target="_blank" class="btn btn-sm btn-outline-info">
-                                <i class="fas fa-external-link-alt"></i> Lihat
+                                <i class="bi bi-box-arrow-up-right"></i> Lihat
                             </a>
                         </td>
                         <td><%= report.like_count !== null ? Number(report.like_count).toLocaleString() : '-' %></td>
@@ -61,12 +61,12 @@
                         <td>
                             <% if (report.updated_at) { %>
                                 <small class="text-success">
-                                    <i class="fas fa-clock me-1"></i>
+                                    <i class="bi bi-clock me-1"></i>
                                     <%= formatDateTime(report.updated_at) %>
                                 </small>
                             <% } else { %>
                                 <small class="text-muted">
-                                    <i class="fas fa-minus me-1"></i>
+                                    <i class="bi bi-dash-lg me-1"></i>
                                     Belum pernah
                                 </small>
                             <% } %>
@@ -74,7 +74,7 @@
                         <td>
                             <button class="btn btn-danger btn-sm" 
                                     onclick="confirmDelete('<%= report.id %>', '<%= report.judul %>')">
-                                <i class="fas fa-trash"></i> Hapus
+                                <i class="bi bi-trash"></i> Hapus
                             </button>
                         </td>
                     </tr>
@@ -82,7 +82,7 @@
             <% } else { %>
                 <tr>
                     <td colspan="13" class="text-center text-muted py-4">
-                        <i class="fas fa-inbox fa-2x mb-2"></i>
+                        <i class="bi bi-inbox-fill fs-2 mb-2"></i>
                         <div>Belum ada data laporan</div>
                     </td>
                 </tr>
@@ -90,6 +90,45 @@
         </tbody>
     </table>
 </div>
+
+<% if (typeof pagination !== 'undefined') { %>
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+    <form method="GET" class="d-flex align-items-center gap-2">
+        <label class="text-muted">Tampilkan</label>
+        <select name="perPage" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+            <% pagination.allowedPerPage.forEach(opt => { %>
+                <option value="<%= opt %>" <%= opt === pagination.perPage ? 'selected' : '' %>><%= opt %></option>
+            <% }) %>
+        </select>
+        <span class="text-muted">per halaman</span>
+        <input type="hidden" name="page" value="1">
+    </form>
+
+    <nav>
+        <ul class="pagination mb-0">
+            <li class="page-item <%= pagination.currentPage === 1 ? 'disabled' : '' %>">
+                <a class="page-link" href="?page=<%= pagination.currentPage - 1 %>&perPage=<%= pagination.perPage %>">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+            <% for (let p = 1; p <= pagination.totalPages; p++) { %>
+                <li class="page-item <%= p === pagination.currentPage ? 'active' : '' %>">
+                    <a class="page-link" href="?page=<%= p %>&perPage=<%= pagination.perPage %>"><%= p %></a>
+                </li>
+            <% } %>
+            <li class="page-item <%= pagination.currentPage === pagination.totalPages ? 'disabled' : '' %>">
+                <a class="page-link" href="?page=<%= pagination.currentPage + 1 %>&perPage=<%= pagination.perPage %>">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="text-muted">
+        Menampilkan <strong><%= Math.min(pagination.totalItems, pagination.offset + pagination.perPage) %></strong> dari <strong><%= pagination.totalItems %></strong> data
+    </div>
+</div>
+<% } %>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -105,8 +144,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 title: 'Sebagian Berhasil!',
                 html: `
                     <div class="text-start">
-                        <p><i class="fas fa-check-circle text-success me-2"></i><strong>${updated}</strong> laporan berhasil diupdate</p>
-                        <p><i class="fas fa-exclamation-triangle text-warning me-2"></i><strong>${errors}</strong> laporan mungkin tidak terupdate</p>
+                        <p><i class="bi bi-check-circle-fill text-success me-2"></i><strong>${updated}</strong> laporan berhasil diupdate</p>
+                        <p><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i><strong>${errors}</strong> laporan mungkin tidak terupdate</p>
                         <small class="text-muted">Silakan coba lagi atau periksa data yang bermasalah</small>
                     </div>
                 `,
@@ -174,7 +213,7 @@ function confirmDelete(id, judul) {
             <div class="text-start">
                 <p>Apakah Anda yakin ingin menghapus laporan ini?</p>
                 <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
                     <strong>Judul:</strong> ${judul}
                 </div>
                 <small class="text-muted">Tindakan ini tidak dapat dibatalkan!</small>
@@ -184,8 +223,8 @@ function confirmDelete(id, judul) {
         showCancelButton: true,
         confirmButtonColor: '#dc3545',
         cancelButtonColor: '#6c757d',
-        confirmButtonText: '<i class="fas fa-trash me-1"></i> Ya, Hapus!',
-        cancelButtonText: '<i class="fas fa-times me-1"></i> Batal',
+        confirmButtonText: '<i class="bi bi-trash me-1"></i> Ya, Hapus!',
+        cancelButtonText: '<i class="bi bi-x-lg me-1"></i> Batal',
         reverseButtons: true,
         showClass: {
             popup: 'animate__animated animate__zoomIn'

@@ -6,14 +6,37 @@ const { formatDate, formatDateTime } = require('../utils/dateHelper');
 // 📌 LIST semua reports
 router.get('/', async (req, res) => {
   try {
-    const [rows] = await db.query("SELECT *, updated_at FROM reports ORDER BY id DESC");
+    // Pagination params
+    const allowedPerPage = [5, 10, 50, 100];
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const perPageRaw = parseInt(req.query.perPage) || 10;
+    const perPage = allowedPerPage.includes(perPageRaw) ? perPageRaw : 10;
+
+    const [[{ total }]] = await db.query("SELECT COUNT(*) AS total FROM reports");
+    const totalPages = Math.max(Math.ceil(total / perPage), 1);
+    const currentPage = Math.min(page, totalPages);
+    const offset = (currentPage - 1) * perPage;
+
+    const [rows] = await db.query(
+      "SELECT *, updated_at FROM reports ORDER BY id DESC LIMIT ? OFFSET ?",
+      [perPage, offset]
+    );
+
     res.render('reports/index', {
       reports: rows,
       formatDate,
       formatDateTime,
       title: "Daftar Reports",
       updated: req.query.updated || 0,
-      errors: req.query.errors || 0
+      errors: req.query.errors || 0,
+      pagination: {
+        totalItems: total,
+        totalPages,
+        currentPage,
+        perPage,
+        allowedPerPage,
+        offset
+      }
     });
   } catch (err) {
     res.status(500).send(err.message);
@@ -29,45 +52,38 @@ router.get('/add', (req, res) => {
 
 // 📌 ACTION tambah report
 router.post('/add', async (req, res) => {
-  let { platform, judul, post_url, like_count, comment_count, view_count, share_count, save_count, follower_count, post_date } = req.body;
+  try {
+    let { platform, judul, post_url, like_count, comment_count, view_count, share_count, save_count, follower_count, post_date } = req.body;
 
-  // Cek apakah judul sudah ada
-  const [existing] = await db.query("SELECT judul FROM reports WHERE judul LIKE ?", [judul + '%']);
+    // Function to process numeric fields - convert empty to NULL
+    const processNumericField = (value) => {
+      if (value === '' || value === undefined || value === null) return null;
+      const num = parseInt(value);
+      return isNaN(num) ? null : num;
+    };
 
-  if (existing.length > 0) {
-    let counter = 1;
-    let newJudul = judul + counter;
+    const processedLike = processNumericField(like_count);
+    const processedComment = processNumericField(comment_count);
+    const processedView = processNumericField(view_count);
+    const processedShare = processNumericField(share_count);
+    const processedSave = processNumericField(save_count);
+    const processedFollower = processNumericField(follower_count);
 
-    const judulSet = new Set(existing.map(r => r.judul));
-    while (judulSet.has(newJudul)) {
-      counter++;
-      newJudul = judul + counter;
+    await db.query(
+      `INSERT INTO reports 
+      (platform, judul, post_url, like_count, comment_count, view_count, share_count, save_count, follower_count, post_date, report_date) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURDATE())`,
+      [platform, judul, post_url, processedLike, processedComment, processedView, processedShare, processedSave, processedFollower, post_date]
+    );
+
+    res.redirect('/reports?created=1');
+  } catch (err) {
+    if (err && err.code === 'ER_DUP_ENTRY') {
+      return res.redirect('/reports/add?error=duplicate');
     }
-    judul = newJudul;
+    console.error('Error adding report:', err);
+    return res.redirect('/reports/add?error=unknown');
   }
-
-  // Function to process numeric fields - convert empty to NULL
-  const processNumericField = (value) => {
-    if (value === '' || value === undefined || value === null) return null;
-    const num = parseInt(value);
-    return isNaN(num) ? null : num;
-  };
-
-  const processedLike = processNumericField(like_count);
-  const processedComment = processNumericField(comment_count);
-  const processedView = processNumericField(view_count);
-  const processedShare = processNumericField(share_count);
-  const processedSave = processNumericField(save_count);
-  const processedFollower = processNumericField(follower_count);
-
-  await db.query(
-    `INSERT INTO reports 
-    (platform, judul, post_url, like_count, comment_count, view_count, share_count, save_count, follower_count, post_date, report_date) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURDATE())`,
-    [platform, judul, post_url, processedLike, processedComment, processedView, processedShare, processedSave, processedFollower, post_date]
-  );
-
-  res.redirect('/reports');
 });
 
 // 📌 UPDATE: hanya laporan yang di-post hari ini (same day update only)
@@ -264,9 +280,8 @@ router.post('/update-target', async (req, res) => {
   try {
     const { report_id, target_engagement } = req.body;
     
-    // Validate input
     if (!report_id || target_engagement === undefined) {
-      return res.status(400).json({ success: false, message: 'Data tidak lengkap' });
+      return res.redirect('/reports/analytics?target_saved=0&msg=Data%20tidak%20lengkap');
     }
 
     const targetValue = parseFloat(target_engagement) || 0;
@@ -276,14 +291,10 @@ router.post('/update-target', async (req, res) => {
       [targetValue, report_id]
     );
 
-    res.json({ 
-      success: true, 
-      message: 'Target berhasil disimpan',
-      target: targetValue 
-    });
+    return res.redirect(`/reports/analytics?target_saved=1&target=${encodeURIComponent(targetValue)}`);
   } catch (err) {
     console.error("Error updating target:", err);
-    res.status(500).json({ success: false, message: 'Gagal menyimpan target' });
+    return res.redirect('/reports/analytics?target_saved=0&msg=Gagal%20menyimpan%20target');
   }
 });
 

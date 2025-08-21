@@ -69,7 +69,6 @@
                                 <input type="number" 
                                        name="like_count[]" 
                                        class="form-control form-control-sm text-center" 
-                                       placeholder="0"
                                        min="0" 
                                        data-field="like"
                                        title="Masukkan jumlah like terbaru">
@@ -78,7 +77,6 @@
                                 <input type="number" 
                                        name="comment_count[]" 
                                        class="form-control form-control-sm text-center"
-                                       placeholder="0"
                                        min="0" 
                                        data-field="comment"
                                        title="Masukkan jumlah komentar terbaru">
@@ -87,7 +85,6 @@
                                 <input type="number" 
                                        name="view_count[]" 
                                        class="form-control form-control-sm text-center" 
-                                       placeholder="0"
                                        min="0" 
                                        data-field="view"
                                        title="Masukkan jumlah view terbaru">
@@ -96,7 +93,6 @@
                                 <input type="number" 
                                        name="share_count[]" 
                                        class="form-control form-control-sm text-center"
-                                       placeholder="0"
                                        min="0" 
                                        data-field="share"
                                        title="Masukkan jumlah share terbaru">
@@ -105,7 +101,6 @@
                                 <input type="number" 
                                        name="save_count[]" 
                                        class="form-control form-control-sm text-center" 
-                                       placeholder="0"
                                        min="0" 
                                        data-field="save"
                                        title="Masukkan jumlah save terbaru">
@@ -114,7 +109,6 @@
                                 <input type="number" 
                                        name="follower_count[]" 
                                        class="form-control form-control-sm text-center"
-                                       placeholder="0"
                                        min="0" 
                                        data-field="follower"
                                        title="Masukkan jumlah follower terbaru">
@@ -332,56 +326,3 @@ document.getElementById('updateForm')?.addEventListener('submit', function(e) {
 });
 </script>
 
-<style>
-.table th {
-    border-top: none;
-    font-weight: 600;
-    font-size: 0.875rem;
-    vertical-align: middle;
-}
-
-.table td {
-    vertical-align: middle;
-}
-
-.form-control-sm {
-    font-size: 0.875rem;
-}
-
-.form-control:focus {
-    border-color: #0ea5e9;
-    box-shadow: 0 0 0 0.2rem rgba(14, 165, 233, 0.25);
-}
-
-.text-truncate {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* Custom styling for filled inputs */
-input[type="number"]:not(:placeholder-shown) {
-    font-weight: 500;
-}
-
-/* Remove spinner arrows for cleaner look */
-input[type="number"]::-webkit-outer-spin-button,
-input[type="number"]::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-
-/* Highlight rows on hover */
-tbody tr:hover {
-    background-color: rgba(0, 123, 255, 0.05);
-}
-
-.btn-sm {
-    font-size: 0.75rem;
-}
-
-/* Smooth transitions */
-.form-control, .btn {
-    transition: all 0.2s ease-in-out;
-}
-</style>

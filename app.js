@@ -31,6 +31,10 @@ app.set('layout', 'layouts/layout');
 
 app.use('/reports', reportsRouter);
 
+// Redirect root to reports
+app.get('/', (req, res) => {
+  res.redirect('/reports');
+});
 
 app.use((req, res, next) => {
   res.locals.title = 'Sistem Report'; // default title

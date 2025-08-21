@@ -113,6 +113,7 @@ document.addEventListener('DOMContentLoaded', function() {
     autoDismissAlerts.forEach(alert => {
         const timeout = parseInt(alert.getAttribute('data-timeout')) || 5000;
         const progressBar = alert.querySelector('.progress-timer');
+        let timeoutId;
         
         if (progressBar) {
             // Animate progress bar
@@ -122,78 +123,62 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 100);
         }
         
-        // Auto close alert
-        const timeoutId = setTimeout(() => {
-            const alertInstance = new bootstrap.Alert(alert);
-            alertInstance.close();
-        }, timeout);
+        // Auto close alert function
+        const autoClose = () => {
+            try {
+                if (alert && alert.parentNode) {
+                    alert.classList.remove('show');
+                    setTimeout(() => {
+                        if (alert && alert.parentNode) {
+                            alert.remove();
+                        }
+                    }, 150);
+                }
+            } catch (error) {
+                console.log('Alert already removed');
+            }
+        };
         
-        // Clear timeout if user manually closes
+        // Set auto close timer
+        timeoutId = setTimeout(autoClose, timeout);
+        
+        // Handle manual close button
         const closeButton = alert.querySelector('.btn-close');
         if (closeButton) {
-            closeButton.addEventListener('click', () => {
+            closeButton.addEventListener('click', (e) => {
+                e.preventDefault();
                 clearTimeout(timeoutId);
+                autoClose();
             });
         }
         
         // Pause timer on hover
+        let isPaused = false;
+        let remainingTime = timeout;
+        let startTime = Date.now();
+        
         alert.addEventListener('mouseenter', () => {
-            if (progressBar) {
-                progressBar.style.animationPlayState = 'paused';
+            if (!isPaused) {
+                clearTimeout(timeoutId);
+                remainingTime = timeout - (Date.now() - startTime);
+                isPaused = true;
+                if (progressBar) {
+                    progressBar.style.animationPlayState = 'paused';
+                }
             }
         });
         
         alert.addEventListener('mouseleave', () => {
-            if (progressBar) {
-                progressBar.style.animationPlayState = 'running';
+            if (isPaused) {
+                startTime = Date.now();
+                timeoutId = setTimeout(autoClose, remainingTime);
+                isPaused = false;
+                if (progressBar) {
+                    progressBar.style.animationPlayState = 'running';
+                }
             }
         });
     });
 });
 </script>
 
-<style>
-.auto-dismiss {
-    position: relative;
-    overflow: hidden;
-}
-
-.progress-timer {
-    transition: width linear;
-}
-
-.auto-dismiss:hover .progress-timer {
-    animation-play-state: paused !important;
-}
-
-.table-responsive {
-    border-radius: 0.375rem;
-    overflow: hidden;
-}
-
-.table th {
-    border-top: none;
-    font-weight: 600;
-    font-size: 0.875rem;
-}
-
-.badge {
-    font-size: 0.75rem;
-}
-
-.text-truncate {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* Smooth fade out animation */
-.alert.fade.show {
-    opacity: 1;
-    transition: opacity 0.5s ease-out;
-}
-
-.alert.fade:not(.show) {
-    opacity: 0;
-}
-</style>

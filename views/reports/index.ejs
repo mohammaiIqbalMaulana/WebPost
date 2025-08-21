@@ -28,6 +28,7 @@
                 <th>Save</th>
                 <th>Followers</th>
                 <th>Tanggal Post</th>
+                <th>Terakhir Update</th>
                 <th>Aksi</th>
             </tr>
         </thead>
@@ -57,6 +58,19 @@
                         <td><%= report.follower_count !== null ? Number(report.follower_count).toLocaleString() : '-' %></td>
                         <td><%= formatDate(report.post_date) %></td>
                         <td>
+                            <% if (report.updated_at) { %>
+                                <small class="text-success">
+                                    <i class="fas fa-clock me-1"></i>
+                                    <%= formatDateTime(report.updated_at) %>
+                                </small>
+                            <% } else { %>
+                                <small class="text-muted">
+                                    <i class="fas fa-minus me-1"></i>
+                                    Belum pernah
+                                </small>
+                            <% } %>
+                        </td>
+                        <td>
                             <button class="btn btn-danger btn-sm" 
                                     onclick="confirmDelete('<%= report.id %>', '<%= report.judul %>')">
                                 <i class="fas fa-trash"></i> Hapus
@@ -66,7 +80,7 @@
                 <% }) %>
             <% } else { %>
                 <tr>
-                    <td colspan="12" class="text-center text-muted py-4">
+                    <td colspan="13" class="text-center text-muted py-4">
                         <i class="fas fa-inbox fa-2x mb-2"></i>
                         <div>Belum ada data laporan</div>
                     </td>

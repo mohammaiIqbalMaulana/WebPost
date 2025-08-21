@@ -1,15 +1,16 @@
 var express = require('express');
 var router = express.Router();
 const db = require('../config/db');
-const { formatDate } = require('../utils/dateHelper');
+const { formatDate, formatDateTime } = require('../utils/dateHelper');
 
 // 📌 LIST semua reports
 router.get('/', async (req, res) => {
   try {
-    const [rows] = await db.query("SELECT * FROM reports ORDER BY id DESC");
+    const [rows] = await db.query("SELECT *, updated_at FROM reports ORDER BY id DESC");
     res.render('reports/index', {
       reports: rows,
       formatDate,
+      formatDateTime,
       title: "Daftar Reports",
       updated: req.query.updated || 0,
       errors: req.query.errors || 0
@@ -69,14 +70,26 @@ router.post('/add', async (req, res) => {
   res.redirect('/reports');
 });
 
-// 📌 UPDATE: hanya laporan < 30 hari (UPDATED untuk field kosong)
+// 📌 UPDATE: hanya laporan yang di-post hari ini (same day update only)
 router.get('/update', async (req, res) => {
   try {
     const today = new Date();
+    const todayString = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+    
+    // Get reports posted today only
+    const [todayReports] = await db.query(
+      `SELECT id, judul, post_url, post_date 
+       FROM reports 
+       WHERE DATE(post_date) = ? 
+       ORDER BY post_date DESC`,
+      [todayString]
+    );
+    
+    // Also get reports from last 30 days for reference (but not editable)
     const cutoffDate = new Date();
     cutoffDate.setDate(today.getDate() - 30);
-
-    const [reports] = await db.query(
+    
+    const [allReports] = await db.query(
       `SELECT id, judul, post_url, post_date 
        FROM reports 
        WHERE post_date >= ? 
@@ -84,8 +97,8 @@ router.get('/update', async (req, res) => {
       [cutoffDate.toISOString().split('T')[0]]
     );
 
-    // PERUBAHAN: Tidak menampilkan nilai lama, biarkan kosong untuk user input
-    const emptyReports = reports.map(r => ({
+    // PERUBAHAN: Hanya tampilkan laporan hari ini untuk update
+    const emptyTodayReports = todayReports.map(r => ({
       id: r.id,
       judul: r.judul,
       post_url: r.post_url,
@@ -94,8 +107,10 @@ router.get('/update', async (req, res) => {
     }));
 
     res.render('reports/update', {
-      reports: emptyReports,
-      title: "Update Reports (≤ 30 Hari)"
+      reports: emptyTodayReports,
+      allReportsCount: allReports.length,
+      todayReportsCount: todayReports.length,
+      title: "Update Reports (Hari Ini Saja)"
     });
   } catch (err) {
     console.error("Error GET /update:", err);

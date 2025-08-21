@@ -1,9 +1,9 @@
 <h1 class="mb-4">
-    <i class="fas fa-chart-line me-2"></i><%= title %>
+    <i class="bi bi-graph-up-arrow me-2"></i><%= title %>
 </h1>
 
 <div class="alert alert-info alert-dismissible fade show">
-    <i class="fas fa-info-circle me-2"></i>
+    <i class="bi bi-info-circle me-2"></i>
     <strong>Engagement Rate:</strong> Dihitung dari (Like + Comment + Share + Save) ÷ Followers × 100%
     <br>
     <strong>Target:</strong> Klik pada kolom target dan tekan Enter untuk menyimpan.
@@ -12,26 +12,26 @@
 
 <div class="d-flex gap-2 mb-3">
     <a href="/reports" class="btn btn-secondary">
-        <i class="fas fa-arrow-left me-1"></i> Kembali ke Daftar
+        <i class="bi bi-arrow-left me-1"></i> Kembali ke Daftar
     </a>
     <a href="/reports/update" class="btn btn-warning">
-        <i class="fas fa-edit me-1"></i> Update Data
+        <i class="bi bi-pencil-square me-1"></i> Update Data
     </a>
 </div>
 
 <div class="table-responsive">
-    <table class="table table-bordered table-striped table-hover">
+    <table class="table table-hover align-middle table-bordered shadow-sm">
         <thead class="table-dark">
             <tr>
                 <th width="50">No</th>
                 <th>Judul</th>
                 <th width="80">URL</th>
                 <th width="120">
-                    <i class="fas fa-chart-bar text-info me-1"></i>
+                    <i class="bi bi-bar-chart-line-fill text-info me-1"></i>
                     Engagement Rate
                 </th>
                 <th width="120">
-                    <i class="fas fa-bullseye text-warning me-1"></i>
+                    <i class="bi bi-bullseye text-warning me-1"></i>
                     Target (%)
                 </th>
                 <th width="100">Status</th>
@@ -44,11 +44,11 @@
                     <tr>
                         <td class="text-center fw-bold"><%= index + 1 %></td>
                         <td>
-                            <div class="text-truncate" style="max-width: 250px;" title="<%= report.judul %>">
+                            <div style="max-width: 520px; overflow-wrap:anywhere;" title="<%= report.judul %>">
                                 <strong><%= report.judul %></strong>
                             </div>
                             <small class="text-muted">
-                                <i class="fas fa-users me-1"></i>
+                                <i class="bi bi-people-fill me-1"></i>
                                 <%= Number(report.follower_count).toLocaleString() %> followers
                             </small>
                         </td>
@@ -57,7 +57,7 @@
                                target="_blank" 
                                class="btn btn-sm btn-outline-info"
                                title="Buka link posting">
-                                <i class="fas fa-external-link-alt"></i>
+                                <i class="bi bi-box-arrow-up-right"></i>
                             </a>
                         </td>
                         <td class="text-center">
@@ -77,27 +77,34 @@
                             </small>
                         </td>
                         <td class="text-center">
-                            <input type="number" 
-                                   class="form-control form-control-sm text-center target-input" 
-                                   value="<%= report.target_engagement || '' %>"
-                                   step="0.1"
-                                   min="0"
-                                   max="100"
-                                   data-report-id="<%= report.id %>"
-                                   title="Tekan Enter untuk simpan">
+                            <form method="POST" action="/reports/update-target" class="d-flex align-items-center justify-content-center gap-2">
+                                <input type="hidden" name="report_id" value="<%= report.id %>">
+                                <input type="number" 
+                                       name="target_engagement"
+                                       class="form-control form-control-sm text-center" 
+                                       value="<%= report.target_engagement || '' %>"
+                                       step="0.1"
+                                       min="0"
+                                       max="100"
+                                       style="width: 90px;"
+                                       title="Ubah dan tekan simpan">
+                                <button type="submit" class="btn btn-sm btn-outline-success" title="Simpan target">
+                                    <i class="bi bi-save"></i>
+                                </button>
+                            </form>
                         </td>
                         <td class="text-center">
                             <% 
                                 const target = report.target_engagement || 0;
                                 const actual = report.engagement_rate;
                                 let statusClass = 'secondary';
-                                let statusIcon = 'minus';
+                                let statusIcon = 'dash-lg';
                                 let statusText = 'Belum ada target';
                                 
                                 if (target > 0) {
                                     if (actual >= target) {
                                         statusClass = 'success';
-                                        statusIcon = 'check';
+                                        statusIcon = 'check-lg';
                                         statusText = 'Tercapai';
                                     } else {
                                         const percentage = ((actual / target) * 100).toFixed(0);
@@ -108,7 +115,7 @@
                                 }
                             %>
                             <span class="badge bg-<%= statusClass %>">
-                                <i class="fas fa-<%= statusIcon %> me-1"></i>
+                                <i class="bi bi-<%= statusIcon %> me-1"></i>
                                 <%= statusText %>
                             </span>
                         </td>
@@ -122,7 +129,7 @@
             <% } else { %>
                 <tr>
                     <td colspan="7" class="text-center text-muted py-4">
-                        <i class="fas fa-chart-line fa-2x mb-2"></i>
+                        <i class="bi bi-graph-up-arrow fs-2 mb-2"></i>
                         <div>Belum ada data dengan engagement rate yang dapat dihitung</div>
                         <small>Pastikan data Like, Comment, View, dan Followers sudah terisi</small>
                     </td>
@@ -138,7 +145,7 @@
         <div class="card border-success">
             <div class="card-body text-center">
                 <h5 class="text-success">
-                    <i class="fas fa-trophy me-1"></i>
+                    <i class="bi bi-trophy me-1"></i>
                     Tertinggi
                 </h5>
                 <% const highest = Math.max(...reports.map(r => r.engagement_rate)); %>
@@ -150,7 +157,7 @@
         <div class="card border-info">
             <div class="card-body text-center">
                 <h5 class="text-info">
-                    <i class="fas fa-chart-bar me-1"></i>
+                    <i class="bi bi-bar-chart-line me-1"></i>
                     Rata-rata
                 </h5>
                 <% const average = (reports.reduce((sum, r) => sum + r.engagement_rate, 0) / reports.length).toFixed(2); %>
@@ -162,7 +169,7 @@
         <div class="card border-warning">
             <div class="card-body text-center">
                 <h5 class="text-warning">
-                    <i class="fas fa-bullseye me-1"></i>
+                    <i class="bi bi-bullseye me-1"></i>
                     Target Tercapai
                 </h5>
                 <% const achieved = reports.filter(r => r.target_engagement && r.engagement_rate >= r.target_engagement).length; %>
@@ -174,7 +181,7 @@
         <div class="card border-secondary">
             <div class="card-body text-center">
                 <h5 class="text-secondary">
-                    <i class="fas fa-list me-1"></i>
+                    <i class="bi bi-list-ul me-1"></i>
                     Total Data
                 </h5>
                 <h3 class="text-secondary"><%= reports.length %></h3>
@@ -186,94 +193,32 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Handle target input with Enter key
-    const targetInputs = document.querySelectorAll('.target-input');
-    
-    targetInputs.forEach(input => {
-        let originalValue = input.value;
-        
-        input.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                saveTarget(this);
-            }
+    const url = new URLSearchParams(window.location.search);
+    const saved = url.get('target_saved');
+    const target = url.get('target');
+    const msg = url.get('msg');
+
+    if (saved === '1') {
+        Swal.fire({
+            title: 'Tersimpan!',
+            text: `Target ${target}% berhasil disimpan`,
+            icon: 'success',
+            timer: 2000,
+            showConfirmButton: false,
+            toast: true,
+            position: 'top-end'
         });
-        
-        input.addEventListener('focus', function() {
-            originalValue = this.value;
-            this.select();
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+    } else if (saved === '0') {
+        Swal.fire({
+            title: 'Gagal!',
+            text: msg ? decodeURIComponent(msg) : 'Gagal menyimpan target',
+            icon: 'error',
+            confirmButtonText: 'OK'
         });
-        
-        input.addEventListener('blur', function() {
-            if (this.value !== originalValue) {
-                saveTarget(this);
-            }
-        });
-    });
-    
-    function saveTarget(inputElement) {
-        const reportId = inputElement.dataset.reportId;
-        const targetValue = inputElement.value;
-        
-        // Show loading state
-        inputElement.disabled = true;
-        inputElement.style.backgroundColor = '#fff3cd';
-        
-        fetch('/reports/update-target', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                report_id: reportId,
-                target_engagement: targetValue
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Success feedback
-                inputElement.style.backgroundColor = '#d1edff';
-                inputElement.style.borderColor = '#0ea5e9';
-                
-                // Show success notification
-                Swal.fire({
-                    title: 'Tersimpan!',
-                    text: `Target ${data.target}% berhasil disimpan`,
-                    icon: 'success',
-                    timer: 2000,
-                    showConfirmButton: false,
-                    toast: true,
-                    position: 'top-end'
-                });
-                
-                // Refresh page after short delay to update status
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1500);
-            } else {
-                throw new Error(data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            inputElement.style.backgroundColor = '#f8d7da';
-            inputElement.style.borderColor = '#dc3545';
-            
-            Swal.fire({
-                title: 'Gagal!',
-                text: 'Gagal menyimpan target: ' + error.message,
-                icon: 'error',
-                confirmButtonText: 'OK'
-            });
-        })
-        .finally(() => {
-            inputElement.disabled = false;
-            setTimeout(() => {
-                inputElement.style.backgroundColor = '';
-                inputElement.style.borderColor = '';
-            }, 2000);
-        });
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
     }
 });
 </script>

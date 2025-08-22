@@ -297,8 +297,8 @@ router.get('/analytics', async (req, res) => {
     const analyticsData = reports.map(report => {
       const totalEngagements = (report.like_count || 0) + (report.comment_count || 0) + 
                               (report.share_count || 0) + (report.save_count || 0);
-      const engagementRate = report.follower_count > 0 
-        ? ((totalEngagements / report.follower_count) * 100).toFixed(2)
+      const engagementRate = report.view_count > 0 
+        ? ((totalEngagements / report.view_count) * 100).toFixed(2)
         : 0;
 
       return {

@@ -1,0 +1,45 @@
+<h1 class="mb-4">
+    <i class="bi bi-printer me-2"></i>
+    <%= title %>
+</h1>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form method="GET" action="/reports/print/export" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Tanggal Mulai</label>
+                <input type="date" name="start_date" class="form-control" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Tanggal Akhir</label>
+                <input type="date" name="end_date" class="form-control" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Format</label>
+                <select name="format" class="form-select">
+                    <option value="pdf">PDF</option>
+                    <option value="word">Word</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="1" id="includeThumbs" name="include_thumbnails">
+                    <label class="form-check-label" for="includeThumbs">
+                        Sertakan Thumbnail
+                    </label>
+                </div>
+            </div>
+            <div class="col-12 d-flex gap-2">
+                <a href="/reports/analytics" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-file-earmark-arrow-down me-1"></i>
+                    Buat Report
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+

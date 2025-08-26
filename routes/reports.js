@@ -2,6 +2,48 @@ var express = require('express');
 var router = express.Router();
 const db = require('../config/db');
 const { formatDate, formatDateTime } = require('../utils/dateHelper');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+// Helper function to check if target is achieved
+function isTargetAchieved(engagementRate, targetRate) {
+    if (!targetRate || targetRate <= 0) return false;
+    // STRICT: Target tercapai hanya jika ER >= target (tanpa toleransi)
+    return engagementRate >= targetRate;
+}
+
+// Configure Multer untuk upload gambar
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = 'public/uploads/';
+    // Buat direktori jika belum ada
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    // Generate nama file unik dengan timestamp
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'report-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  },
+  fileFilter: function (req, file, cb) {
+    // Hanya terima file gambar
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Hanya file gambar yang diperbolehkan!'), false);
+    }
+  }
+});
 
 // 📌 LIST semua reports
 router.get('/', async (req, res) => {
@@ -18,7 +60,7 @@ router.get('/', async (req, res) => {
     const offset = (currentPage - 1) * perPage;
 
     const [rows] = await db.query(
-      "SELECT *, updated_at FROM reports ORDER BY id DESC LIMIT ? OFFSET ?",
+      "SELECT *, updated_at, image_path FROM reports ORDER BY post_date DESC LIMIT ? OFFSET ?",
       [perPage, offset]
     );
 
@@ -50,8 +92,8 @@ router.get('/add', (req, res) => {
   });
 });
 
-// 📌 ACTION tambah report
-router.post('/add', async (req, res) => {
+// 📌 ACTION tambah report dengan image
+router.post('/add', upload.single('image'), async (req, res) => {
   try {
     let { platform, judul, post_url, like_count, comment_count, view_count, share_count, save_count, follower_count, post_date } = req.body;
 
@@ -69,11 +111,17 @@ router.post('/add', async (req, res) => {
     const processedSave = processNumericField(save_count);
     const processedFollower = processNumericField(follower_count);
 
+    // Handle image upload
+    let imagePath = null;
+    if (req.file) {
+      imagePath = 'uploads/' + req.file.filename;
+    }
+
     await db.query(
       `INSERT INTO reports 
-      (platform, judul, post_url, like_count, comment_count, view_count, share_count, save_count, follower_count, post_date, report_date) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURDATE())`,
-      [platform, judul, post_url, processedLike, processedComment, processedView, processedShare, processedSave, processedFollower, post_date]
+      (platform, judul, post_url, like_count, comment_count, view_count, share_count, save_count, follower_count, post_date, report_date, image_path) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURDATE(), ?)`,
+      [platform, judul, post_url, processedLike, processedComment, processedView, processedShare, processedSave, processedFollower, post_date, imagePath]
     );
 
     res.redirect('/reports?created=1');
@@ -86,11 +134,12 @@ router.post('/add', async (req, res) => {
   }
 });
 
-// 📌 UPDATE: hanya laporan yang di-post hari ini (same day update only)
+// 📌 Route UPDATE
 router.get('/update', async (req, res) => {
   try {
     const today = new Date();
-    const todayString = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+    const cutoffDate = new Date();
+    cutoffDate.setDate(today.getDate() - 30); // 30 hari ke belakang
 
     // Pagination params
     const allowedPerPage = [5, 10, 50, 100];
@@ -98,51 +147,28 @@ router.get('/update', async (req, res) => {
     const perPageRaw = parseInt(req.query.perPage) || 10;
     const perPage = allowedPerPage.includes(perPageRaw) ? perPageRaw : 10;
 
-    // Count today's reports
+    // Count reports from last 30 days
     const [[{ total }]] = await db.query(
-      `SELECT COUNT(*) AS total FROM reports WHERE DATE(post_date) = ?`,
-      [todayString]
+      `SELECT COUNT(*) AS total FROM reports WHERE post_date >= ?`,
+      [cutoffDate.toISOString().split('T')[0]]
     );
     const totalPages = Math.max(Math.ceil(total / perPage), 1);
     const currentPage = Math.min(page, totalPages);
     const offset = (currentPage - 1) * perPage;
 
-    // Get paginated reports posted today only
-    const [todayReports] = await db.query(
-      `SELECT id, judul, post_url, post_date 
-       FROM reports 
-       WHERE DATE(post_date) = ? 
-       ORDER BY post_date DESC 
-       LIMIT ? OFFSET ?`,
-      [todayString, perPage, offset]
-    );
-    
-    // Also get reports from last 30 days for reference (but not editable)
-    const cutoffDate = new Date();
-    cutoffDate.setDate(today.getDate() - 30);
-    
-    const [allReports] = await db.query(
+    // Get paginated reports from last 30 days
+    const [reports] = await db.query(
       `SELECT id, judul, post_url, post_date 
        FROM reports 
        WHERE post_date >= ? 
-       ORDER BY post_date DESC`,
-      [cutoffDate.toISOString().split('T')[0]]
+       ORDER BY post_date DESC 
+       LIMIT ? OFFSET ?`,
+      [cutoffDate.toISOString().split('T')[0], perPage, offset]
     );
 
-    // PERUBAHAN: Hanya tampilkan laporan hari ini untuk update
-    const emptyTodayReports = todayReports.map(r => ({
-      id: r.id,
-      judul: r.judul,
-      post_url: r.post_url,
-      post_date: r.post_date
-      // Semua count field tidak disertakan, biarkan kosong
-    }));
-
     res.render('reports/update', {
-      reports: emptyTodayReports,
-      allReportsCount: allReports.length,
-      todayReportsCount: total,
-      title: "Update Reports (Hari Ini Saja)",
+      reports: reports,
+      title: "Update Reports (30 Hari Terakhir)",
       pagination: {
         totalItems: total,
         totalPages,
@@ -158,7 +184,6 @@ router.get('/update', async (req, res) => {
   }
 });
 
-// 📌 POST UPDATE - Updated untuk handle required fields validation
 router.post('/update', async (req, res) => {
   try {
     // Parse form arrays
@@ -186,7 +211,7 @@ router.post('/update', async (req, res) => {
         save_count[i],
         follower_count[i]
       ];
-      
+
       // Validasi semua field harus diisi
       for (let j = 0; j < fieldValues.length; j++) {
         if (!fieldValues[j] || fieldValues[j] === '' || parseInt(fieldValues[j]) < 0) {
@@ -209,17 +234,7 @@ router.post('/update', async (req, res) => {
         const save = parseInt(save_count[i]);
         const follower = parseInt(follower_count[i]);
 
-        // Validasi ID
-        if (!id || id <= 0) {
-          errors.push(`ID tidak valid: ${ids[i]}`);
-          continue;
-        }
-
-        // Validasi nilai tidak boleh negatif
-        if (like < 0 || comment < 0 || view < 0 || share < 0 || save < 0 || follower < 0) {
-          errors.push(`Nilai negatif terdeteksi untuk ID ${id}`);
-          continue;
-        }
+        // ... existing validation code ...
 
         // Update database
         const [result] = await db.query(
@@ -231,6 +246,48 @@ router.post('/update', async (req, res) => {
 
         if (result.affectedRows > 0) {
           updatedCount++;
+
+          // Auto-update target_achieved_date setelah update data
+          try {
+            const [formulas] = await db.query(
+              "SELECT * FROM formula_settings WHERE is_active = TRUE ORDER BY id DESC LIMIT 1"
+            );
+
+            if (formulas.length > 0) {
+              const currentFormula = formulas[0];
+              let formula = currentFormula.engagement_formula;
+              formula = formula.replace(/like/g, like);
+              formula = formula.replace(/comment/g, comment);
+              formula = formula.replace(/view/g, view);
+              formula = formula.replace(/share/g, share);
+              formula = formula.replace(/save/g, save);
+              formula = formula.replace(/follower/g, follower);
+
+              const engagementRate = eval(formula);
+
+              // Get current target
+              const [[currentReport]] = await db.query(
+                "SELECT target_engagement FROM reports WHERE id = ?",
+                [id]
+              );
+
+              // PERBAIKAN: target harus > 0 untuk dianggap valid
+              if (currentReport && currentReport.target_engagement !== null && currentReport.target_engagement > 0) {
+                let targetAchievedDate = null;
+                if (isTargetAchieved(engagementRate, currentReport.target_engagement)) {
+                  targetAchievedDate = new Date().toISOString().split('T')[0];
+                }
+                
+                await db.query(
+                  "UPDATE reports SET target_achieved_date = ? WHERE id = ?",
+                  [targetAchievedDate, id]
+                );
+              }
+            }
+          } catch (autoUpdateError) {
+            console.error('Auto-update target date error:', autoUpdateError);
+            // Don't fail the main update if auto-update fails
+          }
         } else {
           errors.push(`Tidak ada perubahan untuk ID ${id}`);
         }
@@ -246,9 +303,18 @@ router.post('/update', async (req, res) => {
   }
 });
 
-// 📌 ANALYTICS: Engagement Rate & Target Setting
+// 📌 ANALYTICS: Update untuk tanpa target formula dan tanpa pembulatan
 router.get('/analytics', async (req, res) => {
   try {
+    // Get active formula
+    const [formulas] = await db.query(
+      "SELECT * FROM formula_settings WHERE is_active = TRUE ORDER BY id DESC LIMIT 1"
+    );
+    
+    const currentFormula = formulas.length > 0 ? formulas[0] : {
+      engagement_formula: '(like + comment + share + save) / view * 100'
+    };
+
     // Pagination params
     const allowedPerPage = [5, 10, 50, 100];
     const page = Math.max(parseInt(req.query.page) || 1, 1);
@@ -281,8 +347,8 @@ router.get('/analytics', async (req, res) => {
         save_count, 
         follower_count,
         target_engagement,
-        post_date,
-        updated_at
+        target_achieved_date,
+        image_path
       FROM reports 
       WHERE like_count IS NOT NULL 
         AND comment_count IS NOT NULL 
@@ -292,27 +358,44 @@ router.get('/analytics', async (req, res) => {
       ORDER BY post_date DESC
       LIMIT ? OFFSET ?
     `, [perPage, offset]);
-
-    // Calculate engagement rate for each report
+    
     const analyticsData = reports.map(report => {
+      // Dynamic formula evaluation dengan penamaan sederhana
+      let engagementRate = 0;
+      try {
+        // Replace variables dengan penamaan sederhana
+        let formula = currentFormula.engagement_formula;
+        formula = formula.replace(/like/g, report.like_count || 0);
+        formula = formula.replace(/comment/g, report.comment_count || 0);
+        formula = formula.replace(/view/g, report.view_count || 0);
+        formula = formula.replace(/share/g, report.share_count || 0);
+        formula = formula.replace(/save/g, report.save_count || 0);
+        formula = formula.replace(/follower/g, report.follower_count || 0);
+        
+        // Evaluate formula (tanpa pembulatan)
+        engagementRate = eval(formula);
+        engagementRate = isNaN(engagementRate) ? 0 : parseFloat(engagementRate);
+        
+      } catch (e) {
+        console.error('Formula evaluation error:', e);
+        engagementRate = 0;
+      }
+
       const totalEngagements = (report.like_count || 0) + (report.comment_count || 0) + 
                               (report.share_count || 0) + (report.save_count || 0);
-      const engagementRate = report.view_count > 0 
-        ? ((totalEngagements / report.view_count) * 100).toFixed(2)
-        : 0;
-
       return {
         ...report,
-        engagement_rate: parseFloat(engagementRate),
+        engagement_rate: engagementRate,
         total_engagements: totalEngagements
       };
     });
 
     res.render('reports/analytics', {
       reports: analyticsData,
+      currentFormula,
       formatDate,
       formatDateTime,
-      title: "Analytics & Target Setting",
+      title: "Report Analytics",
       pagination: {
         totalItems: total,
         totalPages,
@@ -328,7 +411,105 @@ router.get('/analytics', async (req, res) => {
   }
 });
 
-// 📌 UPDATE TARGET: Save target engagement rate
+// 📌 CETAK REPORT - Form filter & opsi
+router.get('/print', async (req, res) => {
+  try {
+    res.render('reports/print', {
+      title: 'Cetak Report',
+    });
+  } catch (err) {
+    console.error('Error GET /print:', err);
+    res.status(500).send(err.message);
+  }
+});
+
+// 📌 CETAK REPORT - Hasil
+router.get('/print/export', async (req, res) => {
+  try {
+    const { start_date, end_date, include_thumbnails, format } = req.query;
+
+    if (!start_date || !end_date) {
+      return res.status(400).send('Tanggal mulai dan akhir wajib diisi');
+    }
+
+    const includeThumbs = String(include_thumbnails) === '1';
+    const exportFormat = (format || 'pdf').toLowerCase();
+
+    const [reports] = await db.query(`
+      SELECT id, judul, post_url, post_date, like_count, comment_count, view_count, share_count, save_count, follower_count, image_path
+      FROM reports
+      WHERE post_date BETWEEN ? AND ?
+      ORDER BY post_date DESC
+    `, [start_date, end_date]);
+
+    // Untuk saat ini, kita render HTML yang siap dicetak ke PDF lewat dialog browser,
+    // dan untuk Word kita set header content-type agar bisa diunduh sebagai .doc.
+    if (exportFormat === 'word') {
+      res.setHeader('Content-Type', 'application/msword');
+      res.setHeader('Content-Disposition', `attachment; filename="report_${start_date}_to_${end_date}.doc"`);
+    }
+
+    res.render('reports/print_export', {
+      title: 'Cetak Report',
+      reports,
+      start_date,
+      end_date,
+      includeThumbs
+    });
+  } catch (err) {
+    console.error('Error GET /print/export:', err);
+    res.status(500).send(err.message);
+  }
+});
+
+// 📌 FORMULA: Halaman custom formula
+router.get('/formula', async (req, res) => {
+  try {
+    // Get current active formula
+    const [formulas] = await db.query(
+      "SELECT * FROM formula_settings WHERE is_active = TRUE ORDER BY id DESC LIMIT 1"
+    );
+
+    const currentFormula = formulas.length > 0 ? formulas[0] : null;
+
+    res.render('reports/formula', {
+      title: 'Custom Formula ER dan Target',
+      currentFormula,
+      message: req.query.message || null,
+      success: req.query.success || false
+    });
+  } catch (err) {
+    console.error("Error GET /formula:", err);
+    res.status(500).send(err.message);
+  }
+});
+
+// 📌 SAVE FORMULA: Simpan formula custom (hanya ER)
+router.post('/save-formula', async (req, res) => {
+  try {
+    const { engagement_formula } = req.body;
+    
+    if (!engagement_formula) {
+      return res.redirect('/reports/formula?success=false&message=Formula%20tidak%20lengkap');
+    }
+
+    // Deactivate all existing formulas
+    await db.query("UPDATE formula_settings SET is_active = FALSE");
+    
+    // Insert new formula (hanya engagement_formula)
+    await db.query(
+      "INSERT INTO formula_settings (name, engagement_formula) VALUES (?, ?)",
+      [`Formula_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}`, engagement_formula]
+    );
+
+    res.redirect('/reports/formula?success=true&message=Formula%20berhasil%20disimpan');
+  } catch (err) {
+    console.error("Error saving formula:", err);
+    res.redirect('/reports/formula?success=false&message=Gagal%20menyimpan%20formula');
+  }
+});
+
+// 📌 UPDATE TARGET: Update dengan target_achieved_date otomatis (tanpa pembulatan)
 router.post('/update-target', async (req, res) => {
   try {
     const { report_id, target_engagement } = req.body;
@@ -337,17 +518,176 @@ router.post('/update-target', async (req, res) => {
       return res.redirect('/reports/analytics?target_saved=0&msg=Data%20tidak%20lengkap');
     }
 
-    const targetValue = parseFloat(target_engagement) || 0;
+    const targetValue = Number(target_engagement);
+
+    // Validasi target harus > 0
+    if (targetValue <= 0 || isNaN(targetValue)) {
+      return res.redirect('/reports/analytics?target_saved=0&msg=Target%20harus%20lebih%20besar%20dari%200');
+    }
+
+    // Check if target already exists
+    const [[existingTarget]] = await db.query(
+      "SELECT target_engagement FROM reports WHERE id = ? AND target_engagement IS NOT NULL",
+      [report_id]
+    );
+
+    if (existingTarget && existingTarget.target_engagement !== null) {
+      return res.redirect('/reports/analytics?target_saved=0&msg=Target%20sudah%20ada.%20Gunakan%20tombol%20Reset%20untuk%20mengubah');
+    }
+
+    // Get current engagement rate menggunakan formula custom
+    const [formulas] = await db.query(
+      "SELECT * FROM formula_settings WHERE is_active = TRUE ORDER BY id DESC LIMIT 1"
+    );
+    
+    const currentFormula = formulas.length > 0 ? formulas[0] : {
+      engagement_formula: '(like_count + comment_count + share_count + save_count) / view_count * 100'
+    };
+
+    // Get current engagement rate
+    const [[report]] = await db.query(`
+      SELECT 
+        like_count, comment_count, view_count, share_count, save_count, follower_count
+      FROM reports 
+      WHERE id = ?
+    `, [report_id]);
+
+    let engagementRate = 0;
+    try {
+      // Calculate engagement rate using custom formula
+      let formula = currentFormula.engagement_formula;
+      formula = formula.replace(/like/g, report.like_count || 0);
+      formula = formula.replace(/comment/g, report.comment_count || 0);
+      formula = formula.replace(/view/g, report.view_count || 0);
+      formula = formula.replace(/share/g, report.share_count || 0);
+      formula = formula.replace(/save/g, report.save_count || 0);
+      formula = formula.replace(/follower/g, report.follower_count || 0);
+      
+      engagementRate = eval(formula);
+      engagementRate = isNaN(engagementRate) ? 0 : parseFloat(engagementRate); // TANPA toFixed(2)
+    } catch (e) {
+      console.error('Formula evaluation error:', e);
+      engagementRate = 0;
+    }
+
+    // Check if target achieved - PERBAIKAN: target harus > 0 dan ER >= target
+    let targetAchievedDate = null;
+    if (targetValue > 0 && isTargetAchieved(engagementRate, targetValue)) {
+      targetAchievedDate = new Date().toISOString().split('T')[0];
+    }
 
     await db.query(
-      "UPDATE reports SET target_engagement = ? WHERE id = ?",
-      [targetValue, report_id]
+      "UPDATE reports SET target_engagement = ?, target_achieved_date = ? WHERE id = ?",
+      [targetValue, targetAchievedDate, report_id]
     );
 
     return res.redirect(`/reports/analytics?target_saved=1&target=${encodeURIComponent(targetValue)}`);
   } catch (err) {
     console.error("Error updating target:", err);
     return res.redirect('/reports/analytics?target_saved=0&msg=Gagal%20menyimpan%20target');
+  }
+});
+
+router.post('/auto-update-target-date', async (req, res) => {
+  try {
+    const { report_id } = req.body;
+    
+    if (!report_id) {
+      return res.status(400).json({ success: false, message: 'Report ID required' });
+    }
+
+    // Get current formula
+    const [formulas] = await db.query(
+      "SELECT * FROM formula_settings WHERE is_active = TRUE ORDER BY id DESC LIMIT 1"
+    );
+    
+    const currentFormula = formulas.length > 0 ? formulas[0] : {
+      engagement_formula: '(like_count + comment_count + share_count + save_count) / view_count * 100',
+      target_formula: '5.0'
+    };
+
+    // Get report data
+    const [[report]] = await db.query(`
+      SELECT 
+        like_count, comment_count, view_count, share_count, save_count, 
+        follower_count, target_engagement, target_achieved_date
+      FROM reports 
+      WHERE id = ?
+    `, [report_id]);
+
+    if (!report) {
+      return res.status(404).json({ success: false, message: 'Report not found' });
+    }
+
+    // Calculate current engagement rate (tanpa pembulatan)
+    let engagementRate = 0;
+    try {
+      let formula = currentFormula.engagement_formula;
+      formula = formula.replace(/like/g, report.like_count || 0);
+      formula = formula.replace(/comment/g, report.comment_count || 0);
+      formula = formula.replace(/view/g, report.view_count || 0);
+      formula = formula.replace(/share/g, report.share_count || 0);
+      formula = formula.replace(/save/g, report.save_count || 0);
+      formula = formula.replace(/follower/g, report.follower_count || 0);
+      
+      engagementRate = eval(formula);
+      engagementRate = isNaN(engagementRate) ? 0 : parseFloat(engagementRate);
+    } catch (e) {
+      console.error('Formula evaluation error:', e);
+      engagementRate = 0;
+    }
+
+    // Update target_achieved_date - PERBAIKAN LOGIKA
+    let targetAchievedDate = report.target_achieved_date;
+    if (report.target_engagement && report.target_engagement > 0) {
+      if (isTargetAchieved(engagementRate, report.target_engagement)) {
+        if (!targetAchievedDate) {
+          targetAchievedDate = new Date().toISOString().split('T')[0];
+        }
+      } else {
+        targetAchievedDate = null;
+      }
+    }
+
+    await db.query(
+      "UPDATE reports SET target_achieved_date = ? WHERE id = ?",
+      [targetAchievedDate, report_id]
+    );
+
+    return res.json({
+      success: true,
+      target_achieved_date: targetAchievedDate,
+      engagement_rate: engagementRate,
+      target: report.target_engagement
+    });
+  } catch (err) {
+    console.error("Error auto-updating target date:", err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 📌 RESET TARGET: Reset target engagement rate
+router.post('/reset-target', async (req, res) => {
+  try {
+    const { report_id } = req.body;
+
+    if (!report_id) {
+      return res.status(400).json({ success: false, message: 'Report ID required' });
+    }
+
+    // Reset target dan target_achieved_date
+    await db.query(
+      "UPDATE reports SET target_engagement = NULL, target_achieved_date = NULL WHERE id = ?",
+      [report_id]
+    );
+
+    return res.json({
+      success: true,
+      message: 'Target berhasil direset'
+    });
+  } catch (err) {
+    console.error("Error resetting target:", err);
+    return res.status(500).json({ success: false, message: err.message });
   }
 });
 

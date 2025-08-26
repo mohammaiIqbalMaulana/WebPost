@@ -1,0 +1,67 @@
+<h1 class="mb-4">
+    <i class="bi bi-plus-slash-minus me-2"></i> Custom Formula Engagement Rate
+</h1>
+
+<% if (message) { %>
+    <div class="alert alert-<%= success ? 'success' : 'danger' %> alert-dismissible fade show">
+        <i class="bi bi-<%= success ? 'check-circle' : 'exclamation-triangle' %> me-2"></i>
+        <%= decodeURIComponent(message) %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+<% } %>
+
+<div class="alert alert-info">
+    <i class="bi bi-info-circle me-2"></i>
+    <strong>Engagement Rate Formula:</strong> Gunakan variabel seperti like, comment, view, dll.
+    <br>
+    <strong>Target:</strong> Diisi manual di halaman analytics untuk setiap report.
+    <br>
+    <strong>Contoh Formula:</strong> (like + comment + share + save) / view * 100
+</div>
+
+<form method="POST" action="/reports/save-formula">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-bar-chart-line me-2"></i> Engagement Rate Formula</h5>
+                </div>
+                <div class="card-body">
+                    <textarea name="engagement_formula" class="form-control" rows="6" 
+                              placeholder="Contoh: (like + comment + share + save) / view * 100"
+                              required><%= currentFormula?.engagement_formula || '' %></textarea>
+                    <small class="text-muted">
+                        <strong>Variabel yang tersedia:</strong><br>
+                        like, comment, view, share, save, follower
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-4">
+        <button type="submit" class="btn btn-primary btn-lg">
+            <i class="bi bi-save me-2"></i> Simpan Formula
+        </button>
+        <a href="/reports/analytics" class="btn btn-secondary btn-lg">
+            <i class="bi bi-arrow-left me-2"></i> Kembali ke Analytics
+        </a>
+    </div>
+</form>
+
+<div class="mt-4">
+    <div class="card border-warning">
+        <div class="card-header bg-warning text-dark">
+            <h6><i class="bi bi-exclamation-triangle me-2"></i> Tips Penggunaan</h6>
+        </div>
+        <div class="card-body">
+            <ul class="mb-0">
+                <li>Formula mendukung operasi matematika: +, -, *, /, (), Math.min(), Math.max()</li>
+                <li>Pastikan formula valid dan tidak menyebabkan error</li>
+                <li>Formula akan diterapkan ke semua data yang ada</li>
+                <li>Setiap kali menyimpan, formula lama akan dinonaktifkan</li>
+                <li><strong>Target diatur manual per report di halaman analytics</strong></li>
+            </ul>
+        </div>
+    </div>
+</div>

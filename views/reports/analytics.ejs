@@ -1,260 +1,353 @@
 <h1 class="mb-4">
-    <i class="bi bi-graph-up-arrow me-2"></i><%= title %>
+    <i class="bi bi-graph-up-arrow me-2"></i>
+    <%= title %>
 </h1>
 
 <div class="alert alert-info alert-dismissible fade show">
     <i class="bi bi-info-circle me-2"></i>
-    <strong>Engagement Rate:</strong> Dihitung dari (Like + Comment + Share + Save) ÷ Views × 100%
+    <strong>Engagement Rate:</strong> Dihitung dari formula yang telah diatur di halaman custom formula
     <br>
-    <strong>Target:</strong> Klik pada kolom target dan tekan Enter untuk menyimpan.
+    <strong>Target:</strong> Diatur di halaman custom formula
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
 
-<% if (typeof pagination !== 'undefined') { %>
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 mb-3">
-    <form method="GET" class="d-flex align-items-center gap-2">
-        <label class="text-muted">Tampilkan</label>
-        <select name="perPage" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
-            <% pagination.allowedPerPage.forEach(opt => { %>
-                <option value="<%= opt %>" <%= opt === pagination.perPage ? 'selected' : '' %>><%= opt %></option>
-            <% }) %>
-        </select>
-        <span class="text-muted">per halaman</span>
-        <input type="hidden" name="page" value="1">
-    </form>
+<% if (typeof pagination !=='undefined' ) { %>
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 mb-3">
+        <form method="GET" class="d-flex align-items-center gap-2">
+            <label class="text-muted">Tampilkan</label>
+            <select name="perPage" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+                <% pagination.allowedPerPage.forEach(opt=> { %>
+                    <option value="<%= opt %>" <%=opt===pagination.perPage ? 'selected' : '' %>><%= opt %>
+                    </option>
+                    <% }) %>
+            </select>
+            <span class="text-muted">per halaman</span>
+            <input type="hidden" name="page" value="1">
+        </form>
 
-    <div class="text-muted">
-        Menampilkan <strong><%= Math.min(pagination.totalItems, pagination.offset + reports.length) %></strong> dari <strong><%= pagination.totalItems %></strong> data
+        <div class="text-muted">
+            Menampilkan <strong>
+                <%= Math.min(pagination.totalItems, pagination.offset + reports.length) %>
+            </strong> dari <strong>
+                <%= pagination.totalItems %>
+            </strong> data
+        </div>
     </div>
-</div>
-<% } %>
+    <% } %>
 
-<div class="d-flex gap-2 mb-3">
-    <a href="/reports" class="btn btn-secondary">
-        <i class="bi bi-arrow-left"></i>
-    </a>
-    <a href="/reports/formula" class="btn btn-primary">
-        <i class="bi bi-plus-slash-minus me-1"></i> Formula ER dan Target
-    </a>
-</div>
+        <div class="d-flex gap-2 mb-3">
+            <a href="/reports" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <a href="/reports/formula" class="btn btn-primary">
+                <i class="bi bi-plus-slash-minus me-1"></i> Custom Formula
+            </a>
+            <a href="/reports/print" class="btn btn-outline-success">
+                <i class="bi bi-printer me-1"></i> Cetak Report
+            </a>
+        </div>
 
-<div class="table-responsive">
-    <table class="table table-hover align-middle table-bordered shadow-sm">
-        <thead class="table-dark">
-            <tr>
-                <th width="50">No</th>
-                <th width="50">Judul</th>
-                <th width="20">URL</th>
-                <th width="50">
-                    <i class="bi bi-bar-chart-line-fill text-info me-1"></i>
-                    Engagement Rate
-                </th>
-                <th width="10">
-                    <i class="bi bi-bullseye text-warning me-1"></i>
-                    Target (%)
-                </th>
-                <th width="20">Status</th>
-                <th width="20">Tanggal Post</th>
-            </tr>
-        </thead>
-        <tbody>
-            <% if (reports.length > 0) { %>
-                <% reports.forEach((report, index) => { %>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle table-bordered shadow-sm">
+                <thead class="table-dark">
                     <tr>
-                        <td class="text-center fw-bold"><%= (pagination ? pagination.offset : 0) + index + 1 %></td>
-                        <td>
-                            <div style="max-width: 520px; overflow-wrap:anywhere;" title="<%= report.judul %>">
-                                <strong><%= report.judul %></strong>
-                            </div>
-                            <small class="text-muted">
-                                <i class="bi bi-people-fill me-1"></i>
-                                <%= Number(report.follower_count).toLocaleString() %> followers
-                            </small>
-                        </td>
-                        <td class="text-center">
-                            <a href="<%= report.post_url %>" 
-                               target="_blank" 
-                               class="btn btn-sm btn-outline-info"
-                               title="Buka link posting">
-                                <i class="bi bi-box-arrow-up-right"></i>
-                            </a>
-                        </td>
-                        <td class="text-center">
-                            <% 
-                                let badgeClass = 'secondary';
-                                if (report.engagement_rate >= 5) badgeClass = 'success';
-                                else if (report.engagement_rate >= 2) badgeClass = 'warning';
-                                else if (report.engagement_rate >= 1) badgeClass = 'info';
-                                else badgeClass = 'danger';
-                            %>
-                            <span class="badge bg-<%= badgeClass %> fs-6">
-                                <%= report.engagement_rate %>%
-                            </span>
-                            <br>
-                            <small class="text-muted">
-                                <%= Number(report.total_engagements).toLocaleString() %> total
-                            </small>
-                        </td>
-                        <td class="text-center">
-                            <form method="POST" action="/reports/update-target" class="d-flex align-items-center justify-content-center gap-2">
-                                <input type="hidden" name="report_id" value="<%= report.id %>">
-                                <input type="number" 
-                                       name="target_engagement"
-                                       class="form-control form-control-sm text-center" 
-                                       value="<%= report.target_engagement || '' %>"
-                                       step="0.1"
-                                       min="0"
-                                       max="100"
-                                       style="width: 90px;"
-                                       title="Ubah dan tekan simpan">
-                            </form>
-                        </td>
-                        <td class="text-center">
-                            <% 
-                                const target = report.target_engagement || 0;
-                                const actual = report.engagement_rate;
-                                let statusClass = 'secondary';
-                                let statusIcon = 'dash-lg';
-                                let statusText = 'Belum ada target';
-                                
-                                if (target > 0) {
-                                    if (actual >= target) {
-                                        statusClass = 'success';
-                                        statusIcon = 'check-lg';
-                                        statusText = 'Tercapai';
-                                    } else {
-                                        const percentage = ((actual / target) * 100).toFixed(0);
-                                        statusClass = 'warning';
-                                        statusIcon = 'clock';
-                                        statusText = percentage + '% dari target';
-                                    }
-                                }
-                            %>
-                            <span class="badge bg-<%= statusClass %>">
-                                <i class="bi bi-<%= statusIcon %> me-1"></i>
-                                <%= statusText %>
-                            </span>
-                        </td>
-                        <td class="text-center">
-                            <small class="text-muted">
-                                <%= formatDate(report.post_date) %>
-                            </small>
-                        </td>
+                        <th width="50">No</th>
+                        <th width="100">Judul</th>
+                        <th width="20">Thumbnail</th>
+                        <th width="20">URL</th>
+                        <th width="130">
+                            <i class="bi bi-bar-chart-line-fill text-info me-1"></i>
+                            Engagement Rate
+                        </th>
+                        <th width="10">
+                            <i class="bi bi-bullseye text-warning me-1"></i>
+                            Target (%)
+                        </th>
+                        <th width="20">Status</th>
+                        <th width="160">Tanggal Target Tercapai</th>
                     </tr>
-                <% }) %>
-            <% } else { %>
-                <tr>
-                    <td colspan="7" class="text-center text-muted py-4">
-                        <i class="bi bi-graph-up-arrow fs-2 mb-2"></i>
-                        <div>Belum ada data dengan engagement rate yang dapat dihitung</div>
-                        <small>Pastikan data Like, Comment, View, dan Followers sudah terisi</small>
-                    </td>
-                </tr>
-            <% } %>
-        </tbody>
-    </table>
-    <nav>
-        <ul class="pagination mb-0">
-            <li class="page-item <%= pagination.currentPage === 1 ? 'disabled' : '' %>">
-                <a class="page-link" href="?page=<%= pagination.currentPage - 1 %>&perPage=<%= pagination.perPage %>">
-                    <i class="bi bi-chevron-left"></i>
-                </a>
-            </li>
-            <% for (let p = 1; p <= pagination.totalPages; p++) { %>
-                <li class="page-item <%= p === pagination.currentPage ? 'active' : '' %>">
-                    <a class="page-link" href="?page=<%= p %>&perPage=<%= pagination.perPage %>"><%= p %></a>
-                </li>
-            <% } %>
-            <li class="page-item <%= pagination.currentPage === pagination.totalPages ? 'disabled' : '' %>">
-                <a class="page-link" href="?page=<%= pagination.currentPage + 1 %>&perPage=<%= pagination.perPage %>">
-                    <i class="bi bi-chevron-right"></i>
-                </a>
-            </li>
-        </ul>
-    </nav>
-</div>
+                </thead>
+                <tbody>
+                    <% if (reports.length > 0) { %>
+                        <% reports.forEach((report, index) => { %>
+                            <tr>
+                                <td class="text-center fw-bold">
+                                    <%= (pagination ? pagination.offset : 0) + index + 1 %>
+                                </td>
+                                <td>
+                                    <div style="max-width: 520px; overflow-wrap:anywhere;" title="<%= report.judul %>">
+                                        <strong><%= report.judul %></strong>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <% if (report.image_path) { %>
+                                        <img src="/<%= report.image_path %>" alt="Post Image" class="img-thumbnail" style="max-width: 80px; max-height: 80px; cursor: pointer;" onclick="showImageModal('/<%= report.image_path %>')">
+                                    <% } else { %>
+                                        <span class="text-muted">-</span>
+                                    <% } %>
+                                </td>
+                                <td class="text-center">
+                                    <a href="<%= report.post_url %>" 
+                                       target="_blank" 
+                                       class="btn btn-sm btn-outline-info"
+                                       title="Buka link posting">
+                                        <i class="bi bi-box-arrow-up-right"></i>
+                                    </a>
+                                </td>
+                                <td class="text-center">
+                                    <% 
+                                        // Selalu gunakan warna hijau untuk badge ER
+                                        const badgeClass = 'success';
+                                    %>
+                                    <span class="badge bg-<%= badgeClass %> fs-6">
+                                        <%= report.engagement_rate %>%
+                                    </span>
+                                    <br>
+                                </td>
+                                <td class="text-center">
+                                    <% if (report.target_engagement !== null && report.target_engagement !== undefined) { %>
+                                        <!-- Target sudah ada, tampilkan sebagai text readonly -->
+                                        <div class="d-flex flex-column align-items-center">
+                                            <span class="badge bg-success fs-6 mb-1">
+                                            <%= Number(report.target_engagement || 0) %>%
+                                            </span>
+                                            <small class="text-muted">
+                                                <i class="bi bi-lock me-1"></i>
+                                                Target Terkunci
+                                            </small>
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-outline-warning mt-1"
+                                                    onclick="resetTarget('<%= report.id %>')"
+                                                    title="Reset target untuk mengubah">
+                                                <i class="bi bi-arrow-clockwise me-1"></i>
+                                                Reset
+                                            </button>
+                                        </div>
+                                    <% } else { %>
+                                        <!-- Target belum ada, tampilkan form input -->
+                                        <form method="POST" action="/reports/update-target" class="d-flex align-items-center justify-content-center gap-2">
+                                            <input type="hidden" name="report_id" value="<%= report.id %>">
+                                            <input type="number" 
+                                                   name="target_engagement"
+                                                   class="form-control form-control-sm text-center" 
+                                                   value=""
+                                                   step="0.1"
+                                                   min="0.1"
+                                                   max="100"
+                                                   style="width: 90px;"
+                                                   placeholder="Set target"
+                                                   title="Masukkan target engagement rate (min 0.1)">
+                                            <button type="submit" class="btn btn-sm btn-primary">
+                                                <i class="bi bi-check"></i>
+                                            </button>
+                                        </form>
+                                    <% } %>
+                                </td>
+                                <td class="text-center">
+                                    <% 
+                                        const target = Number(report.target_engagement || 0);
+                                        const actual = Number(report.engagement_rate || 0);
 
+                                        const targetRounded = Math.round(target * 10) / 10;
+                                        const actualRounded = Math.round(actual * 10) / 10;
 
-<% if (reports.length > 0) { %>
-<div class="row mt-4">
-    <div class="col-md-3">
-        <div class="card border-success">
-            <div class="card-body text-center">
-                <h5 class="text-success">
-                    <i class="bi bi-trophy me-1"></i>
-                    Tertinggi
-                </h5>
-                <% const highest = Math.max(...reports.map(r => r.engagement_rate)); %>
-                <h3 class="text-success"><%= highest %>%</h3>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card border-info">
-            <div class="card-body text-center">
-                <h5 class="text-info">
-                    <i class="bi bi-bar-chart-line me-1"></i>
-                    Rata-rata
-                </h5>
-                <% const average = (reports.reduce((sum, r) => sum + r.engagement_rate, 0) / reports.length).toFixed(2); %>
-                <h3 class="text-info"><%= average %>%</h3>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card border-warning">
-            <div class="card-body text-center">
-                <h5 class="text-warning">
-                    <i class="bi bi-bullseye me-1"></i>
-                    Target Tercapai
-                </h5>
-                <% const achieved = reports.filter(r => r.target_engagement && r.engagement_rate >= r.target_engagement).length; %>
-                <h3 class="text-warning"><%= achieved %>/<%= reports.length %></h3>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card border-secondary">
-            <div class="card-body text-center">
-                <h5 class="text-secondary">
-                    <i class="bi bi-list-ul me-1"></i>
-                    Total Data
-                </h5>
-                <h3 class="text-secondary"><%= reports.length %></h3>
-            </div>
-        </div>
-    </div>
-</div>
-<% } %>
+                                        const tolerance = 0.05;
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const url = new URLSearchParams(window.location.search);
-    const saved = url.get('target_saved');
-    const target = url.get('target');
-    const msg = url.get('msg');
+                                        let statusClass = 'secondary';
+                                        let statusIcon = 'dash-lg';
+                                        let statusText = 'Belum ada target';
+                                        
+                                        if (target > 0) {
+                                            if (actual > target) {
+                                                // PERUBAHAN: ER > Target = Merah
+                                                statusClass = 'danger';
+                                                statusIcon = 'exclamation-triangle';
+                                                statusText = 'Target Melampaui';
+                                            } else if (actual === target) {
+                                                // PERUBAHAN: ER = Target = Hijau
+                                                statusClass = 'success';
+                                                statusIcon = 'check-lg';
+                                                statusText = 'Tepat Target';
+                                            } else {
+                                                // PERUBAHAN: ER < Target = Biru
+                                                statusClass = 'primary';
+                                                statusIcon = 'arrow-down';
+                                                statusText = 'Tidak Sesuai Target';
+                                            }
+                                        }
+                                    %>
+                                    <span class="badge bg-<%= statusClass %>">
+                                        <i class="bi bi-<%= statusIcon %> me-1"></i>
+                                        <%= statusText %>
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <% if (report.target_engagement && report.target_engagement > 0) { %>
+                                        <% if (Number(report.engagement_rate) >= Number(report.target_engagement)) { %>
+                                            <% if (report.target_achieved_date) { %>
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-calendar-check me-1"></i>
+                                                    <%= formatDate(report.target_achieved_date) %>
+                                                </span>
+                                            <% } else { %>
+                                                <span class="text-success">
+                                                    <i class="bi bi-check-circle-fill me-1"></i>
+                                                    Target Tercapai
+                                                </span>
+                                            <% } %>
+                                        <% } else { %>
+                                            <span class="text-muted">
+                                                <i class="bi bi-clock me-1"></i>
+                                                Belum tercapai
+                                            </span>
+                                        <% } %>
+                                    <% } else { %>
+                                        <span class="text-muted">
+                                            <i class="bi bi-dash me-1"></i>
+                                            -
+                                        </span>
+                                    <% } %>
+                                </td>
+                            </tr>
+                        <% }) %>
+                    <% } else { %>
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">
+                                <i class="bi bi-graph-up-arrow fs-2 mb-2"></i>
+                                <div>Belum ada data dengan engagement rate yang dapat dihitung</div>
+                                <small>Pastikan data Like, Comment, View, dan Followers sudah terisi</small>
+                            </td>
+                        </tr>
+                    <% } %>
+                </tbody>
+            </table>
+            <nav>
+                <ul class="pagination mb-0">
+                    <li class="page-item <%= pagination.currentPage === 1 ? 'disabled' : '' %>">
+                        <a class="page-link"
+                            href="?page=<%= pagination.currentPage - 1 %>&perPage=<%= pagination.perPage %>">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                    <% for (let p=1; p <=pagination.totalPages; p++) { %>
+                        <li class="page-item <%= p === pagination.currentPage ? 'active' : '' %>">
+                            <a class="page-link" href="?page=<%= p %>&perPage=<%= pagination.perPage %>">
+                                <%= p %>
+                            </a>
+                        </li>
+                        <% } %>
+                            <li
+                                class="page-item <%= pagination.currentPage === pagination.totalPages ? 'disabled' : '' %>">
+                                <a class="page-link"
+                                    href="?page=<%= pagination.currentPage + 1 %>&perPage=<%= pagination.perPage %>">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                </ul>
+            </nav>
+        </div>
 
-    if (saved === '1') {
-        Swal.fire({
-            title: 'Tersimpan!',
-            text: `Target ${target}% berhasil disimpan`,
-            icon: 'success',
-            timer: 2000,
-            showConfirmButton: false,
-            toast: true,
-            position: 'top-end'
-        });
-        const cleanUrl = window.location.pathname;
-        window.history.replaceState({}, document.title, cleanUrl);
-    } else if (saved === '0') {
-        Swal.fire({
-            title: 'Gagal!',
-            text: msg ? decodeURIComponent(msg) : 'Gagal menyimpan target',
-            icon: 'error',
-            confirmButtonText: 'OK'
-        });
-        const cleanUrl = window.location.pathname;
-        window.history.replaceState({}, document.title, cleanUrl);
-    }
-});
-</script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const url = new URLSearchParams(window.location.search);
+                const saved = url.get('target_saved');
+                const target = url.get('target');
+                const msg = url.get('msg');
+
+                if (saved === '1') {
+                    Swal.fire({
+                        title: 'Tersimpan!',
+                        text: `Target ${target}% berhasil disimpan`,
+                        icon: 'success',
+                        timer: 2000,
+                        showConfirmButton: false,
+                        toast: true,
+                        position: 'top-end'
+                    });
+                    const cleanUrl = window.location.pathname;
+                    window.history.replaceState({}, document.title, cleanUrl);
+                } else if (saved === '0') {
+                    Swal.fire({
+                        title: 'Gagal!',
+                        text: msg ? decodeURIComponent(msg) : 'Gagal menyimpan target',
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                    const cleanUrl = window.location.pathname;
+                    window.history.replaceState({}, document.title, cleanUrl);
+                }
+            });
+
+            // Function to show image in modal
+            function showImageModal(imageUrl) {
+                Swal.fire({
+                    title: 'Gambar Postingan',
+                    html: `<img src="${imageUrl}" alt="Post Image" class="img-fluid" style="max-height: 70vh;">`,
+                    showCloseButton: true,
+                    showConfirmButton: false,
+                    width: 'auto',
+                    padding: '1rem',
+                    background: '#f8f9fa',
+                    customClass: {
+                        popup: 'rounded-3'
+                    }
+                });
+            }
+
+            // Function untuk reset target
+            function resetTarget(reportId) {
+                Swal.fire({
+                    title: 'Reset Target?',
+                    text: 'Target akan dihapus dan Anda bisa mengatur target baru',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ffc107',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: '<i class="bi bi-arrow-clockwise me-1"></i> Ya, Reset!',
+                    cancelButtonText: '<i class="bi bi-x-lg me-1"></i> Batal',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Kirim request reset target
+                        fetch('/reports/reset-target', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ report_id: reportId })
+                        })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    Swal.fire({
+                                        title: 'Berhasil!',
+                                        text: 'Target berhasil direset',
+                                        icon: 'success',
+                                        timer: 1500,
+                                        showConfirmButton: false
+                                    }).then(() => {
+                                        // Reload halaman untuk refresh data
+                                        window.location.reload();
+                                    });
+                                } else {
+                                    Swal.fire({
+                                        title: 'Gagal!',
+                                        text: data.message || 'Gagal mereset target',
+                                        icon: 'error',
+                                        confirmButtonText: 'OK'
+                                    });
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
+                                Swal.fire({
+                                    title: 'Error!',
+                                    text: 'Terjadi kesalahan saat mereset target',
+                                    icon: 'error',
+                                    confirmButtonText: 'OK'
+                                });
+                            });
+                    }
+                });
+            }
+        </script>

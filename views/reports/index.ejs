@@ -19,17 +19,18 @@
         <thead class="table-dark">
             <tr>
                 <th class="text-center">No</th>
-                <th>Platform</th>
-                <th>Judul</th>
-                <th>URL</th>
-                <th><i class="bi bi-heart-fill text-danger me-2"></i>Like</th>
-                <th width="120"><i class="bi bi-chat-dots-fill text-info me-2"></i>Komentar</th>
-                <th><i class="bi bi-eye-fill text-success me-2"></i>View</th>
-                <th><i class="bi bi-share-fill text-primary me-2"></i>Share</th>
-                <th><i class="bi bi-bookmark-fill text-secondary me-2"></i>Save</th>
-                <th><i class="bi bi-people-fill text-warning me-2"></i>Followers</th>
-                <th>Tanggal Post</th>
-                <th>Terakhir Update</th>
+                <th width="100">Platform</th>
+                <th width="150">Judul</th>
+                <th width="100">Thumbnail</th>
+                <th width="10">URL</th>
+                <th width="100"><i class="bi bi-heart-fill text-danger me-2"></i>Like</th>
+                <th width="150"><i class="bi bi-chat-dots-fill text-info me-2"></i>Komentar</th>
+                <th width="100"><i class="bi bi-eye-fill text-success me-2"></i>View</th>
+                <th width="100"><i class="bi bi-share-fill text-primary me-2"></i>Share</th>
+                <th width="100"><i class="bi bi-bookmark-fill text-secondary me-2"></i>Save</th>
+                <th width="150"><i class="bi bi-people-fill text-warning me-2"></i>Followers</th>
+                <th width="150">Tanggal Post</th>
+                <th width="180">Terakhir Update</th>
                 <th>Aksi</th>
             </tr>
         </thead>
@@ -45,6 +46,13 @@
                             <div class="fw-semibold" style="max-width: 480px; overflow-wrap:anywhere;">
                                 <%= report.judul %>
                             </div>
+                        </td>
+                        <td class="text-center">
+                            <% if (report.image_path) { %>
+                                <img src="/<%= report.image_path %>" alt="Post Image" class="img-thumbnail" style="max-width: 80px; max-height: 80px; cursor: pointer;" onclick="showImageModal('/<%= report.image_path %>')">
+                            <% } else { %>
+                                <span class="text-muted">-</span>
+                            <% } %>
                         </td>
                         <td>
                             <a href="<%= report.post_url %>" target="_blank" class="btn btn-sm btn-outline-info">
@@ -81,7 +89,7 @@
                 <% }) %>
             <% } else { %>
                 <tr>
-                    <td colspan="13" class="text-center text-muted py-4">
+                    <td colspan="14" class="text-center text-muted py-4">
                         <i class="bi bi-inbox-fill fs-2 mb-2"></i>
                         <div>Belum ada data laporan</div>
                     </td>
@@ -204,6 +212,22 @@ document.addEventListener('DOMContentLoaded', function() {
         window.history.replaceState({}, document.title, cleanUrl);
     }
 });
+
+// Function to show image in modal
+function showImageModal(imageUrl) {
+    Swal.fire({
+        title: 'Gambar Postingan',
+        html: `<img src="${imageUrl}" alt="Post Image" class="img-fluid" style="max-height: 70vh;">`,
+        showCloseButton: true,
+        showConfirmButton: false,
+        width: 'auto',
+        padding: '1rem',
+        background: '#f8f9fa',
+        customClass: {
+            popup: 'rounded-3'
+        }
+    });
+}
 
 // Function for delete confirmation
 function confirmDelete(id, judul) {

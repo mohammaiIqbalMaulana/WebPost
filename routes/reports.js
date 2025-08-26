@@ -454,7 +454,8 @@ router.get('/print/export', async (req, res) => {
       reports,
       start_date,
       end_date,
-      includeThumbs
+      includeThumbs,
+      formatDate
     });
   } catch (err) {
     console.error('Error GET /print/export:', err);

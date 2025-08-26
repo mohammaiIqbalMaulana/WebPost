@@ -45,7 +45,7 @@
                     <div class="fw-semibold"><%= r.judul %></div>
                     <div><a href="<%= r.post_url %>"><%= r.post_url %></a></div>
                 </td>
-                <td><%= r.post_date %></td>
+                <td><%= typeof formatDate === 'function' ? formatDate(r.post_date) : r.post_date %></td>
                 <td>
                     <% 
                       const like = r.like_count || 0;

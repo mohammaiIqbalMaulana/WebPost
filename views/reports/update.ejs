@@ -5,7 +5,8 @@
 <div class="alert alert-info alert-dismissible fade show">
     <i class="bi bi-clock me-2"></i>
     <strong>Informasi:</strong> 
-    Semua kolom Like, Komentar, View, Share, Save, dan Followers <strong>wajib diisi</strong> dengan data terbaru.
+    Kolom Like, Komentar, View, Share, Save, dan Followers dapat diisi dengan angka (termasuk 0) atau dibiarkan kosong. 
+    Data yang sudah diisi akan tersimpan sementara saat pindah halaman.
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
 
@@ -37,7 +38,7 @@
 <% } %>
 
 <div class="d-flex gap-2 mb-3">
-    <a href="/reports" class="btn btn-secondary">
+    <a href="/reports" class="btn btn-secondary" onclick="clearDraftOnExit()">
         <i class="bi bi-arrow-left me-1"></i>
     </a>
 </div>
@@ -69,10 +70,10 @@
                     <th width="10">
                         <i class="bi bi-bookmark-fill text-secondary me-1"></i>
                         Save
-                        <th width="10">
-                            <i class="bi bi-people-fill text-warning me-1"></i>
-                            Followers
-                        </th>
+                    </th>
+                    <th width="10">
+                        <i class="bi bi-people-fill text-warning me-1"></i>
+                        Followers
                     </th>
                 </tr>
             </thead>
@@ -161,62 +162,241 @@
     </div>
 
     <% if (reports.length > 0) { %>
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 mt-3">
-            <form method="GET" class="d-flex align-items-center gap-2">
-                <label class="text-muted">Tampilkan</label>
-                <select name="perPage" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
-                    <% if (typeof pagination !== 'undefined') { pagination.allowedPerPage.forEach(opt => { %>
-                        <option value="<%= opt %>" <%= opt === pagination.perPage ? 'selected' : '' %>><%= opt %></option>
-                    <% }) } %>
-                </select>
-                <span class="text-muted">per halaman</span>
-                <input type="hidden" name="page" value="1">
-            </form>
-
-            <nav>
-                <ul class="pagination mb-0">
-                    <% if (typeof pagination !== 'undefined') { %>
-                    <li class="page-item <%= pagination.currentPage === 1 ? 'disabled' : '' %>">
-                        <a class="page-link" href="?page=<%= pagination.currentPage - 1 %>&perPage=<%= pagination.perPage %>">
-                            <i class="bi bi-chevron-left"></i>
-                        </a>
-                    </li>
-                    <% for (let p = 1; p <= pagination.totalPages; p++) { %>
-                        <li class="page-item <%= p === pagination.currentPage ? 'active' : '' %>">
-                            <a class="page-link" href="?page=<%= p %>&perPage=<%= pagination.perPage %>"><%= p %></a>
-                        </li>
-                    <% } %>
-                    <li class="page-item <%= pagination.currentPage === pagination.totalPages ? 'disabled' : '' %>">
-                        <a class="page-link" href="?page=<%= pagination.currentPage + 1 %>&perPage=<%= pagination.perPage %>">
-                            <i class="bi bi-chevron-right"></i>
-                        </a>
-                    </li>
-                    <% } %>
-                </ul>
-            </nav>
-
-            <div class="text-muted">
-                <% if (typeof pagination !== 'undefined') { %>
-                    Menampilkan <strong><%= Math.min(pagination.totalItems, pagination.offset + reports.length) %></strong> dari <strong><%= pagination.totalItems %></strong> data
-                <% } else { %>
-                    <i class="bi bi-info-circle me-1"></i>
-                    Total <strong><%= reports.length %></strong> laporan untuk diupdate
-                <% } %>
-            </div>
-
-            <div class="d-flex gap-2">
-                <a href="/reports" class="btn btn-secondary">
-                    <i class="bi bi-arrow-left me-1"></i> Batal
-                </a>
-                <button type="submit" class="btn btn-success" id="submitBtn">
-                    <i class="bi bi-save me-1"></i> Simpan Perubahan
+        <div class="d-flex justify-content-end align-items-center gap-2 mt-3">
+            <a href="/reports" class="btn btn-secondary" onclick="clearDraftOnExit()">
+                <i class="bi bi-arrow-left me-1"></i> Batal
+            </a>
+            <% if (typeof tempData !== 'undefined' && tempData.ids && tempData.ids.length > 0) { %>
+                <button type="button" class="btn btn-outline-warning" onclick="clearTemporaryData()">
+                    <i class="bi bi-trash me-1"></i> Hapus Data Sementara
                 </button>
-            </div>
+            <% } %>
+            <button type="submit" class="btn btn-success" id="submitBtn">
+                <i class="bi bi-save me-1"></i> Simpan Perubahan
+            </button>
         </div>
     <% } %>
 </form>
 
+<% if (reports.length > 0 && typeof pagination !== 'undefined') { %>
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 mt-3">
+    <form method="GET" class="d-flex align-items-center gap-2">
+        <label class="text-muted">Tampilkan</label>
+        <select name="perPage" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+            <% pagination.allowedPerPage.forEach(opt => { %>
+                <option value="<%= opt %>" <%= opt === pagination.perPage ? 'selected' : '' %>><%= opt %></option>
+            <% }) %>
+        </select>
+        <span class="text-muted">per halaman</span>
+        <input type="hidden" name="page" value="1">
+    </form>
+
+    <nav>
+        <ul class="pagination mb-0">
+            <li class="page-item <%= pagination.currentPage === 1 ? 'disabled' : '' %>">
+                <a class="page-link" href="?page=<%= pagination.currentPage - 1 %>&perPage=<%= pagination.perPage %>">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+            <% for (let p = 1; p <= pagination.totalPages; p++) { %>
+                <li class="page-item <%= p === pagination.currentPage ? 'active' : '' %>">
+                    <a class="page-link" href="?page=<%= p %>&perPage=<%= pagination.perPage %>"><%= p %></a>
+                </li>
+            <% } %>
+            <li class="page-item <%= pagination.currentPage === pagination.totalPages ? 'disabled' : '' %>">
+                <a class="page-link" href="?page=<%= pagination.currentPage + 1 %>&perPage=<%= pagination.perPage %>">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="text-muted">
+        Menampilkan <strong><%= Math.min(pagination.totalItems, pagination.offset + reports.length) %></strong> dari <strong><%= pagination.totalItems %></strong> data
+    </div>
+</div>
+<% } %>
+
 <script>
+// Load temporary data from session
+function loadTemporaryData() {
+    // Check if we have tempData from server
+    <% if (typeof tempData !== 'undefined' && tempData.ids && tempData.ids.length > 0) { %>
+        console.log('Loading temporary data...');
+        
+        // Fill form with temporary data - use different variable name to avoid conflict
+        const clientTempData = <%- JSON.stringify(tempData) %>;
+        
+        if (clientTempData.ids && clientTempData.ids.length > 0) {
+            clientTempData.ids.forEach((id, index) => {
+                // Find the row with this ID
+                const row = document.querySelector(`input[name="ids[]"][value="${id}"]`).closest('tr');
+                if (row) {
+                    // Fill in the form fields
+                    if (clientTempData.like_count && clientTempData.like_count[index] !== undefined) {
+                        row.querySelector('input[name="like_count[]"]').value = clientTempData.like_count[index];
+                    }
+                    if (clientTempData.comment_count && clientTempData.comment_count[index] !== undefined) {
+                        row.querySelector('input[name="comment_count[]"]').value = clientTempData.comment_count[index];
+                    }
+                    if (clientTempData.view_count && clientTempData.view_count[index] !== undefined) {
+                        row.querySelector('input[name="view_count[]"]').value = clientTempData.view_count[index];
+                    }
+                    if (clientTempData.share_count && clientTempData.share_count[index] !== undefined) {
+                        row.querySelector('input[name="share_count[]"]').value = clientTempData.share_count[index];
+                    }
+                    if (clientTempData.save_count && clientTempData.save_count[index] !== undefined) {
+                        row.querySelector('input[name="save_count[]"]').value = clientTempData.save_count[index];
+                    }
+                    if (clientTempData.follower_count && clientTempData.follower_count[index] !== undefined) {
+                        row.querySelector('input[name="follower_count[]"]').value = clientTempData.follower_count[index];
+                    }
+                }
+            });
+            
+            // Show notification
+            Swal.fire({
+                title: '📝 Data Tersimpan',
+                text: 'Data sebelumnya telah dimuat kembali. Anda dapat melanjutkan mengisi form.',
+                icon: 'info',
+                timer: 3000,
+                showConfirmButton: false
+            });
+        }
+    <% } else { %>
+        // No temporary data available
+        console.log('No temporary data to load');
+    <% } %>
+}
+
+// Clear temporary data
+function clearTemporaryData() {
+    Swal.fire({
+        title: '🗑️ Hapus Data Sementara?',
+        text: 'Data yang belum disimpan akan dihapus. Lanjutkan?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ffc107',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Clear form fields
+            const inputs = document.querySelectorAll('input[type="number"]');
+            inputs.forEach(input => {
+                input.value = '';
+                input.style.backgroundColor = '';
+                input.style.borderColor = '';
+            });
+            
+            // Clear draft local storage
+            clearDraft();
+            
+            // Send request to clear temp data
+            fetch('/reports/clear-temp-data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            }).then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: '✅ Berhasil',
+                        text: 'Data sementara telah dihapus',
+                        icon: 'success',
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        // Reload page to remove the clear button
+                        window.location.reload();
+                    });
+                }
+            }).catch(error => {
+                console.error('Error clearing temp data:', error);
+                Swal.fire({
+                    title: '❌ Error',
+                    text: 'Gagal menghapus data sementara',
+                    icon: 'error'
+                });
+            });
+        }
+    });
+}
+
+// ======================
+// Draft penyimpanan lokal
+// ======================
+const DRAFT_STORAGE_KEY = 'reports_update_draft_v1';
+
+function getDraftStore() {
+    try {
+        const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+        return raw ? JSON.parse(raw) : {};
+    } catch (e) {
+        return {};
+    }
+}
+
+function setDraftStore(store) {
+    try {
+        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(store));
+    } catch (e) {}
+}
+
+function saveRowToDraft(row) {
+    const idInput = row.querySelector('input[name="ids[]"]');
+    if (!idInput) return;
+    const id = String(idInput.value);
+    const like = row.querySelector('input[name="like_count[]"]').value;
+    const comment = row.querySelector('input[name="comment_count[]"]').value;
+    const view = row.querySelector('input[name="view_count[]"]').value;
+    const share = row.querySelector('input[name="share_count[]"]').value;
+    const save = row.querySelector('input[name="save_count[]"]').value;
+    const follower = row.querySelector('input[name="follower_count[]"]').value;
+
+    const store = getDraftStore();
+    store[id] = { like, comment, view, share, save, follower };
+    setDraftStore(store);
+}
+
+function applyDraftToRow(row) {
+    const idInput = row.querySelector('input[name="ids[]"]');
+    if (!idInput) return;
+    const id = String(idInput.value);
+    const store = getDraftStore();
+    const data = store[id];
+    if (!data) return;
+    if (data.like !== undefined) row.querySelector('input[name="like_count[]"]').value = data.like;
+    if (data.comment !== undefined) row.querySelector('input[name="comment_count[]"]').value = data.comment;
+    if (data.view !== undefined) row.querySelector('input[name="view_count[]"]').value = data.view;
+    if (data.share !== undefined) row.querySelector('input[name="share_count[]"]').value = data.share;
+    if (data.save !== undefined) row.querySelector('input[name="save_count[]"]').value = data.save;
+    if (data.follower !== undefined) row.querySelector('input[name="follower_count[]"]').value = data.follower;
+}
+
+function applyDraftToPage() {
+    document.querySelectorAll('tbody tr').forEach(tr => applyDraftToRow(tr));
+}
+
+function clearDraft() {
+    try { localStorage.removeItem(DRAFT_STORAGE_KEY); } catch (e) {}
+}
+
+// Function to clear draft when exiting /update page
+function clearDraftOnExit() {
+    clearDraft();
+    return true; // Allow navigation to continue
+}
+
+// Hook clearTemporaryData untuk juga menghapus draft lokal
+const __origClearTemp = clearTemporaryData;
+clearTemporaryData = function() {
+    clearDraft();
+    __origClearTemp();
+};
+
 function validateForm() {
     const inputs = document.querySelectorAll('input[type="number"]');
     let validReports = 0;
@@ -333,7 +513,8 @@ function validateForm() {
         reverseButtons: true
     }).then((result) => {
         if (result.isConfirmed) {
-            // User confirmed, submit the form
+            // User confirmed, clear draft and submit the form
+            clearDraft();
             const submitBtn = document.getElementById('submitBtn');
             submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Menyimpan...';
             submitBtn.disabled = true;
@@ -344,10 +525,14 @@ function validateForm() {
     return false; // Always prevent default form submission
 }
 
-
-
 // Initialize form
 document.addEventListener('DOMContentLoaded', function() {
+    // Load temporary data if available
+    loadTemporaryData();
+
+    // Terapkan draft dari localStorage
+    applyDraftToPage();
+    
     const inputs = document.querySelectorAll('input[type="number"]');
     
     inputs.forEach(input => {
@@ -388,6 +573,19 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 0);
         });
     });
+
+    // Simpan per baris saat input berubah (debounce ringan)
+    let saveTimer;
+    document.querySelectorAll('tbody tr').forEach(tr => {
+        tr.querySelectorAll('input[type="number"]').forEach(inp => {
+            ['input','change','blur'].forEach(evt => {
+                inp.addEventListener(evt, () => {
+                    clearTimeout(saveTimer);
+                    saveTimer = setTimeout(() => saveRowToDraft(tr), 150);
+                });
+            });
+        });
+    });
     
     // Add keyboard shortcuts
     document.addEventListener('keydown', function(e) {
@@ -398,14 +596,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('updateForm').submit();
             }
         }
-        
-
     });
+});
+
+// Clear draft when leaving /update page (only for navigation, not pagination)
+window.addEventListener('beforeunload', function(e) {
+    const newURL = e.target.activeElement ? e.target.activeElement.href : '';
+    const currentPath = window.location.pathname;
+    
+    // Only clear if leaving /update page entirely, not pagination within /update
+    if (currentPath.includes('/update') && newURL && !newURL.includes('/update')) {
+        clearDraft();
+    }
 });
 
 // Handle form submission
 document.getElementById('updateForm')?.addEventListener('submit', function(e) {
     e.preventDefault(); // Always prevent default submission
+    // Biarkan draft tetap ada agar jika gagal, data tidak hilang.
+    // Draft akan dihapus manual oleh user melalui tombol, atau bisa dihapus setelah landing di /reports jika diperlukan.
     validateForm(); // Let validation handle the submission
 });
 </script>

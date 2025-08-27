@@ -26,9 +26,9 @@
                 <th width="40">No</th>
                 <th>Judul</th>
                 <th>Tanggal Post</th>
-                <th>ER (calc)</th>
+                <th>Insight</th>
                 <% if (includeThumbs) { %>
-                    <th>Thumbnail</th>
+                    <th>Konten</th>
                 <% } %>
             </tr>
         </thead>
@@ -55,7 +55,26 @@
                       const view = r.view_count || 1; // hindari pembagi 0
                       const er = ((like + comment + share + save) / view * 100);
                     %>
-                    <%= er %>%
+                    <div class="small">
+                        <% if (Array.isArray(insights) ? insights.includes('view') : true) { %>
+                          <div><strong>View:</strong> <%= view.toLocaleString() %></div>
+                        <% } %>
+                        <% if (Array.isArray(insights) ? insights.includes('like') : true) { %>
+                          <div><strong>Like:</strong> <%= like.toLocaleString() %></div>
+                        <% } %>
+                        <% if (Array.isArray(insights) ? insights.includes('comment') : true) { %>
+                          <div><strong>Comment:</strong> <%= comment.toLocaleString() %></div>
+                        <% } %>
+                        <% if (Array.isArray(insights) ? insights.includes('share') : true) { %>
+                          <div><strong>Share:</strong> <%= share.toLocaleString() %></div>
+                        <% } %>
+                        <% if (Array.isArray(insights) ? insights.includes('save') : true) { %>
+                          <div><strong>Save:</strong> <%= save.toLocaleString() %></div>
+                        <% } %>
+                        <% if (Array.isArray(insights) ? insights.includes('er') : true) { %>
+                          <div><strong>ER:</strong> <%= er.toFixed(2) %>%</div>
+                        <% } %>
+                    </div>
                 </td>
                 <% if (includeThumbs) { %>
                 <td>

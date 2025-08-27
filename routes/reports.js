@@ -6,6 +6,23 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
+// Middleware untuk menyimpan data sementara
+const saveTempData = (req, res, next) => {
+  if (req.method === 'POST' && req.path === '/update') {
+    // Simpan data ke session sebelum redirect
+    req.session.tempUpdateData = {
+      ids: req.body['ids[]'],
+      like_count: req.body['like_count[]'],
+      comment_count: req.body['comment_count[]'],
+      view_count: req.body['view_count[]'],
+      share_count: req.body['share_count[]'],
+      save_count: req.body['save_count[]'],
+      follower_count: req.body['follower_count[]']
+    };
+  }
+  next();
+};
+
 // Helper function to check if target is achieved
 function isTargetAchieved(engagementRate, targetRate) {
     if (!targetRate || targetRate <= 0) return false;
@@ -60,7 +77,7 @@ router.get('/', async (req, res) => {
     const offset = (currentPage - 1) * perPage;
 
     const [rows] = await db.query(
-      "SELECT *, updated_at, image_path FROM reports ORDER BY post_date DESC LIMIT ? OFFSET ?",
+      "SELECT *, updated_at, image_path FROM reports ORDER BY post_date DESC, created_at DESC LIMIT ? OFFSET ?",
       [perPage, offset]
     );
 
@@ -161,14 +178,18 @@ router.get('/update', async (req, res) => {
       `SELECT id, judul, post_url, post_date 
        FROM reports 
        WHERE post_date >= ? 
-       ORDER BY post_date DESC 
+       ORDER BY post_date DESC, created_at DESC 
        LIMIT ? OFFSET ?`,
       [cutoffDate.toISOString().split('T')[0], perPage, offset]
     );
 
+    // Ambil data sementara dari session jika ada
+    const tempData = req.session.tempUpdateData || {};
+
     res.render('reports/update', {
       reports: reports,
       title: "Update Reports (30 Hari Terakhir)",
+      tempData: tempData, // Kirim data sementara ke view
       pagination: {
         totalItems: total,
         totalPages,
@@ -195,13 +216,23 @@ router.post('/update', async (req, res) => {
     const save_count = Array.isArray(req.body['save_count[]']) ? req.body['save_count[]'] : [req.body['save_count[]']];
     const follower_count = Array.isArray(req.body['follower_count[]']) ? req.body['follower_count[]'] : [req.body['follower_count[]']];
 
+    // Simpan data ke session untuk digunakan di halaman lain
+    req.session.tempUpdateData = {
+      ids: ids,
+      like_count: like_count,
+      comment_count: comment_count,
+      view_count: view_count,
+      share_count: share_count,
+      save_count: save_count,
+      follower_count: follower_count
+    };
+
     // Validasi data
     if (!ids || ids.length === 0 || ids[0] === undefined) {
       return res.status(400).send("Tidak ada data dikirim");
     }
 
-    // Validasi semua field required
-    const requiredFields = [like_count, comment_count, view_count, share_count, save_count, follower_count];
+    // Validasi data - izinkan nilai 0 dan field kosong
     for (let i = 0; i < ids.length; i++) {
       const fieldValues = [
         like_count[i],
@@ -212,10 +243,14 @@ router.post('/update', async (req, res) => {
         follower_count[i]
       ];
 
-      // Validasi semua field harus diisi
+      // Validasi field tidak boleh negatif, tapi boleh 0 atau kosong
       for (let j = 0; j < fieldValues.length; j++) {
-        if (!fieldValues[j] || fieldValues[j] === '' || parseInt(fieldValues[j]) < 0) {
-          return res.status(400).send(`Field ${['like_count', 'comment_count', 'view_count', 'share_count', 'save_count', 'follower_count'][j]} untuk ID ${ids[i]} tidak valid atau kosong`);
+        const value = fieldValues[j];
+        if (value !== '' && value !== null && value !== undefined) {
+          const numValue = parseInt(value);
+          if (isNaN(numValue) || numValue < 0) {
+            return res.status(400).send(`Field ${['like_count', 'comment_count', 'view_count', 'share_count', 'save_count', 'follower_count'][j]} untuk ID ${ids[i]} tidak valid (harus angka >= 0)`);
+          }
         }
       }
     }
@@ -227,16 +262,30 @@ router.post('/update', async (req, res) => {
     for (let i = 0; i < ids.length; i++) {
       try {
         const id = parseInt(ids[i]);
-        const like = parseInt(like_count[i]);
-        const comment = parseInt(comment_count[i]);
-        const view = parseInt(view_count[i]);
-        const share = parseInt(share_count[i]);
-        const save = parseInt(save_count[i]);
-        const follower = parseInt(follower_count[i]);
+        
+        // Parse values dengan handling untuk field kosong
+        const parseValue = (value) => {
+          if (value === '' || value === null || value === undefined) {
+            return null; // Biarkan NULL untuk field kosong
+          }
+          const num = parseInt(value);
+          return isNaN(num) ? null : num;
+        };
+        
+        const like = parseValue(like_count[i]);
+        const comment = parseValue(comment_count[i]);
+        const view = parseValue(view_count[i]);
+        const share = parseValue(share_count[i]);
+        const save = parseValue(save_count[i]);
+        const follower = parseValue(follower_count[i]);
 
-        // ... existing validation code ...
+        // Skip jika semua field kosong untuk report ini
+        if (like === null && comment === null && view === null && 
+            share === null && save === null && follower === null) {
+          continue; // Skip report ini, tidak ada yang diupdate
+        }
 
-        // Update database
+        // Update database dengan nilai yang valid
         const [result] = await db.query(
           `UPDATE reports 
            SET like_count = ?, comment_count = ?, view_count = ?, share_count = ?, save_count = ?, follower_count = ?, updated_at = CURRENT_TIMESTAMP
@@ -249,39 +298,44 @@ router.post('/update', async (req, res) => {
 
           // Auto-update target_achieved_date setelah update data
           try {
-            const [formulas] = await db.query(
-              "SELECT * FROM formula_settings WHERE is_active = TRUE ORDER BY id DESC LIMIT 1"
-            );
-
-            if (formulas.length > 0) {
-              const currentFormula = formulas[0];
-              let formula = currentFormula.engagement_formula;
-              formula = formula.replace(/like/g, like);
-              formula = formula.replace(/comment/g, comment);
-              formula = formula.replace(/view/g, view);
-              formula = formula.replace(/share/g, share);
-              formula = formula.replace(/save/g, save);
-              formula = formula.replace(/follower/g, follower);
-
-              const engagementRate = eval(formula);
-
-              // Get current target
-              const [[currentReport]] = await db.query(
-                "SELECT target_engagement FROM reports WHERE id = ?",
-                [id]
+            // Hanya update target date jika semua field yang diperlukan tersedia
+            if (like !== null && comment !== null && view !== null && 
+                share !== null && save !== null && follower !== null) {
+              
+              const [formulas] = await db.query(
+                "SELECT * FROM formula_settings WHERE is_active = TRUE ORDER BY id DESC LIMIT 1"
               );
 
-              // PERBAIKAN: target harus > 0 untuk dianggap valid
-              if (currentReport && currentReport.target_engagement !== null && currentReport.target_engagement > 0) {
-                let targetAchievedDate = null;
-                if (isTargetAchieved(engagementRate, currentReport.target_engagement)) {
-                  targetAchievedDate = new Date().toISOString().split('T')[0];
-                }
-                
-                await db.query(
-                  "UPDATE reports SET target_achieved_date = ? WHERE id = ?",
-                  [targetAchievedDate, id]
+              if (formulas.length > 0) {
+                const currentFormula = formulas[0];
+                let formula = currentFormula.engagement_formula;
+                formula = formula.replace(/like/g, like);
+                formula = formula.replace(/comment/g, comment);
+                formula = formula.replace(/view/g, view);
+                formula = formula.replace(/share/g, share);
+                formula = formula.replace(/save/g, save);
+                formula = formula.replace(/follower/g, follower);
+
+                const engagementRate = eval(formula);
+
+                // Get current target
+                const [[currentReport]] = await db.query(
+                  "SELECT target_engagement FROM reports WHERE id = ?",
+                  [id]
                 );
+
+                // PERBAIKAN: target harus > 0 untuk dianggap valid
+                if (currentReport && currentReport.target_engagement !== null && currentReport.target_engagement > 0) {
+                  let targetAchievedDate = null;
+                  if (isTargetAchieved(engagementRate, currentReport.target_engagement)) {
+                    targetAchievedDate = new Date().toISOString().split('T')[0];
+                  }
+                  
+                  await db.query(
+                    "UPDATE reports SET target_achieved_date = ? WHERE id = ?",
+                    [targetAchievedDate, id]
+                  );
+                }
               }
             }
           } catch (autoUpdateError) {
@@ -289,14 +343,27 @@ router.post('/update', async (req, res) => {
             // Don't fail the main update if auto-update fails
           }
         } else {
-          errors.push(`Tidak ada perubahan untuk ID ${id}`);
+          // Ini seharusnya tidak terjadi karena kita sudah skip field kosong
+          console.log(`No changes for ID ${id} - this should not happen`);
         }
       } catch (updateError) {
         errors.push(`Error untuk ID ${ids[i]}: ${updateError.message}`);
       }
     }
 
-    res.redirect(`/reports?updated=${updatedCount}&errors=${errors.length}`);
+    // Hapus data sementara dari session setelah update berhasil
+    delete req.session.tempUpdateData;
+    
+    // Tampilkan pesan yang lebih informatif
+    let redirectUrl = `/reports?updated=${updatedCount}`;
+    if (errors.length > 0) {
+      redirectUrl += `&errors=${errors.length}`;
+    }
+    if (updatedCount === 0) {
+      redirectUrl += `&message=no_updates`;
+    }
+    
+    res.redirect(redirectUrl);
   } catch (err) {
     console.error("Update error:", err);
     res.status(500).send("Error: " + err.message);
@@ -355,7 +422,7 @@ router.get('/analytics', async (req, res) => {
         AND view_count IS NOT NULL
         AND follower_count IS NOT NULL
         AND follower_count > 0
-      ORDER BY post_date DESC
+      ORDER BY post_date DESC, created_at DESC
       LIMIT ? OFFSET ?
     `, [perPage, offset]);
     
@@ -426,7 +493,7 @@ router.get('/print', async (req, res) => {
 // 📌 CETAK REPORT - Hasil
 router.get('/print/export', async (req, res) => {
   try {
-    const { start_date, end_date, include_thumbnails, format } = req.query;
+    const { start_date, end_date, include_thumbnails, format, selected_insights } = req.query;
 
     if (!start_date || !end_date) {
       return res.status(400).send('Tanggal mulai dan akhir wajib diisi');
@@ -435,18 +502,25 @@ router.get('/print/export', async (req, res) => {
     const includeThumbs = String(include_thumbnails) === '1';
     const exportFormat = (format || 'pdf').toLowerCase();
 
+    // Parse selected insights (comma-separated), default to all if empty
+    const defaultInsights = ['view', 'like', 'comment', 'share', 'save', 'er'];
+    const selectedInsights = (selected_insights || '')
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+    const insights = selectedInsights.length ? selectedInsights : defaultInsights;
+
     const [reports] = await db.query(`
       SELECT id, judul, post_url, post_date, like_count, comment_count, view_count, share_count, save_count, follower_count, image_path
       FROM reports
       WHERE post_date BETWEEN ? AND ?
-      ORDER BY post_date DESC
+      ORDER BY post_date DESC, created_at DESC
     `, [start_date, end_date]);
 
-    // Untuk saat ini, kita render HTML yang siap dicetak ke PDF lewat dialog browser,
-    // dan untuk Word kita set header content-type agar bisa diunduh sebagai .doc.
-    if (exportFormat === 'word') {
-      res.setHeader('Content-Type', 'application/msword');
-      res.setHeader('Content-Disposition', `attachment; filename="report_${start_date}_to_${end_date}.doc"`);
+    // Set header untuk Excel jika dipilih
+    if (exportFormat === 'excel') {
+      res.setHeader('Content-Type', 'application/vnd.ms-excel');
+      res.setHeader('Content-Disposition', `attachment; filename="report_${start_date}_to_${end_date}.xls"`);
     }
 
     res.render('reports/print_export', {
@@ -455,7 +529,8 @@ router.get('/print/export', async (req, res) => {
       start_date,
       end_date,
       includeThumbs,
-      formatDate
+      formatDate,
+      insights
     });
   } catch (err) {
     console.error('Error GET /print/export:', err);
@@ -688,6 +763,34 @@ router.post('/reset-target', async (req, res) => {
     });
   } catch (err) {
     console.error("Error resetting target:", err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 📌 GET TEMP DATA: Ambil data sementara dari session
+router.get('/get-temp-data', async (req, res) => {
+  try {
+    const tempData = req.session.tempUpdateData || {};
+    return res.json({
+      success: true,
+      data: tempData
+    });
+  } catch (err) {
+    console.error("Error getting temp data:", err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 📌 CLEAR TEMP DATA: Hapus data sementara dari session
+router.post('/clear-temp-data', async (req, res) => {
+  try {
+    delete req.session.tempUpdateData;
+    return res.json({
+      success: true,
+      message: "Data sementara berhasil dihapus"
+    });
+  } catch (err) {
+    console.error("Error clearing temp data:", err);
     return res.status(500).json({ success: false, message: err.message });
   }
 });

@@ -10,33 +10,6 @@
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
 
-<% if (typeof allReportsCount !== 'undefined' && typeof todayReportsCount !== 'undefined') { %>
-<div class="row mb-3">
-    <div class="col-md-6">
-        <div class="card border-primary">
-            <div class="card-body text-center">
-                <h5 class="card-title text-primary">
-                    <i class="bi bi-calendar-day me-2"></i>Hari Ini
-                </h5>
-                <h2 class="text-primary"><%= todayReportsCount %></h2>
-                <small class="text-muted">Laporan bisa diupdate</small>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6">
-        <div class="card border-secondary">
-            <div class="card-body text-center">
-                <h5 class="card-title text-secondary">
-                    <i class="bi bi-calendar3 me-2"></i>30 Hari Terakhir
-                </h5>
-                <h2 class="text-secondary"><%= allReportsCount %></h2>
-                <small class="text-muted">Total laporan</small>
-            </div>
-        </div>
-    </div>
-</div>
-<% } %>
-
 <div class="d-flex gap-2 mb-3">
     <a href="/reports" class="btn btn-secondary" onclick="clearDraftOnExit()">
         <i class="bi bi-arrow-left me-1"></i>
@@ -81,7 +54,7 @@
                 <% if (reports.length > 0) { %>
                     <% reports.forEach((report, index) => { %>
                         <tr>
-                            <td class="text-center fw-bold"><%= (pagination ? pagination.offset : 0) + index + 1 %></td>
+                            <td class="text-center fw-bold"><%= index + 1 %></td>
                             <td>
                                 <div class="d-flex flex-column">
                                     <strong style="max-width: 520px; overflow-wrap:anywhere;" title="<%= report.judul %>"><%= report.judul %></strong>
@@ -166,11 +139,6 @@
             <a href="/reports" class="btn btn-secondary" onclick="clearDraftOnExit()">
                 <i class="bi bi-arrow-left me-1"></i> Batal
             </a>
-            <% if (typeof tempData !== 'undefined' && tempData.ids && tempData.ids.length > 0) { %>
-                <button type="button" class="btn btn-outline-warning" onclick="clearTemporaryData()">
-                    <i class="bi bi-trash me-1"></i> Hapus Data Sementara
-                </button>
-            <% } %>
             <button type="submit" class="btn btn-success" id="submitBtn">
                 <i class="bi bi-save me-1"></i> Simpan Perubahan
             </button>
@@ -178,61 +146,18 @@
     <% } %>
 </form>
 
-<% if (reports.length > 0 && typeof pagination !== 'undefined') { %>
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 mt-3">
-    <form method="GET" class="d-flex align-items-center gap-2">
-        <label class="text-muted">Tampilkan</label>
-        <select name="perPage" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
-            <% pagination.allowedPerPage.forEach(opt => { %>
-                <option value="<%= opt %>" <%= opt === pagination.perPage ? 'selected' : '' %>><%= opt %></option>
-            <% }) %>
-        </select>
-        <span class="text-muted">per halaman</span>
-        <input type="hidden" name="page" value="1">
-    </form>
-
-    <nav>
-        <ul class="pagination mb-0">
-            <li class="page-item <%= pagination.currentPage === 1 ? 'disabled' : '' %>">
-                <a class="page-link" href="?page=<%= pagination.currentPage - 1 %>&perPage=<%= pagination.perPage %>">
-                    <i class="bi bi-chevron-left"></i>
-                </a>
-            </li>
-            <% for (let p = 1; p <= pagination.totalPages; p++) { %>
-                <li class="page-item <%= p === pagination.currentPage ? 'active' : '' %>">
-                    <a class="page-link" href="?page=<%= p %>&perPage=<%= pagination.perPage %>"><%= p %></a>
-                </li>
-            <% } %>
-            <li class="page-item <%= pagination.currentPage === pagination.totalPages ? 'disabled' : '' %>">
-                <a class="page-link" href="?page=<%= pagination.currentPage + 1 %>&perPage=<%= pagination.perPage %>">
-                    <i class="bi bi-chevron-right"></i>
-                </a>
-            </li>
-        </ul>
-    </nav>
-
-    <div class="text-muted">
-        Menampilkan <strong><%= Math.min(pagination.totalItems, pagination.offset + reports.length) %></strong> dari <strong><%= pagination.totalItems %></strong> data
-    </div>
-</div>
-<% } %>
-
 <script>
 // Load temporary data from session
 function loadTemporaryData() {
-    // Check if we have tempData from server
     <% if (typeof tempData !== 'undefined' && tempData.ids && tempData.ids.length > 0) { %>
         console.log('Loading temporary data...');
         
-        // Fill form with temporary data - use different variable name to avoid conflict
         const clientTempData = <%- JSON.stringify(tempData) %>;
         
         if (clientTempData.ids && clientTempData.ids.length > 0) {
             clientTempData.ids.forEach((id, index) => {
-                // Find the row with this ID
                 const row = document.querySelector(`input[name="ids[]"][value="${id}"]`).closest('tr');
                 if (row) {
-                    // Fill in the form fields
                     if (clientTempData.like_count && clientTempData.like_count[index] !== undefined) {
                         row.querySelector('input[name="like_count[]"]').value = clientTempData.like_count[index];
                     }
@@ -254,25 +179,21 @@ function loadTemporaryData() {
                 }
             });
             
-            // Show notification
             Swal.fire({
-                title: '📝 Data Tersimpan',
+                title: 'Data Tersimpan',
                 text: 'Data sebelumnya telah dimuat kembali. Anda dapat melanjutkan mengisi form.',
                 icon: 'info',
                 timer: 3000,
                 showConfirmButton: false
             });
         }
-    <% } else { %>
-        // No temporary data available
-        console.log('No temporary data to load');
     <% } %>
 }
 
 // Clear temporary data
 function clearTemporaryData() {
     Swal.fire({
-        title: '🗑️ Hapus Data Sementara?',
+        title: 'Hapus Data Sementara?',
         text: 'Data yang belum disimpan akan dihapus. Lanjutkan?',
         icon: 'warning',
         showCancelButton: true,
@@ -282,7 +203,6 @@ function clearTemporaryData() {
         cancelButtonText: 'Batal'
     }).then((result) => {
         if (result.isConfirmed) {
-            // Clear form fields
             const inputs = document.querySelectorAll('input[type="number"]');
             inputs.forEach(input => {
                 input.value = '';
@@ -290,10 +210,6 @@ function clearTemporaryData() {
                 input.style.borderColor = '';
             });
             
-            // Clear draft local storage
-            clearDraft();
-            
-            // Send request to clear temp data
             fetch('/reports/clear-temp-data', {
                 method: 'POST',
                 headers: {
@@ -303,114 +219,31 @@ function clearTemporaryData() {
             .then(data => {
                 if (data.success) {
                     Swal.fire({
-                        title: '✅ Berhasil',
+                        title: 'Berhasil',
                         text: 'Data sementara telah dihapus',
                         icon: 'success',
                         timer: 2000,
                         showConfirmButton: false
                     }).then(() => {
-                        // Reload page to remove the clear button
                         window.location.reload();
                     });
                 }
             }).catch(error => {
                 console.error('Error clearing temp data:', error);
-                Swal.fire({
-                    title: '❌ Error',
-                    text: 'Gagal menghapus data sementara',
-                    icon: 'error'
-                });
             });
         }
     });
 }
 
-// ======================
-// Draft penyimpanan lokal
-// ======================
-const DRAFT_STORAGE_KEY = 'reports_update_draft_v1';
-
-function getDraftStore() {
-    try {
-        const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
-        return raw ? JSON.parse(raw) : {};
-    } catch (e) {
-        return {};
-    }
-}
-
-function setDraftStore(store) {
-    try {
-        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(store));
-    } catch (e) {}
-}
-
-function saveRowToDraft(row) {
-    const idInput = row.querySelector('input[name="ids[]"]');
-    if (!idInput) return;
-    const id = String(idInput.value);
-    const like = row.querySelector('input[name="like_count[]"]').value;
-    const comment = row.querySelector('input[name="comment_count[]"]').value;
-    const view = row.querySelector('input[name="view_count[]"]').value;
-    const share = row.querySelector('input[name="share_count[]"]').value;
-    const save = row.querySelector('input[name="save_count[]"]').value;
-    const follower = row.querySelector('input[name="follower_count[]"]').value;
-
-    const store = getDraftStore();
-    store[id] = { like, comment, view, share, save, follower };
-    setDraftStore(store);
-}
-
-function applyDraftToRow(row) {
-    const idInput = row.querySelector('input[name="ids[]"]');
-    if (!idInput) return;
-    const id = String(idInput.value);
-    const store = getDraftStore();
-    const data = store[id];
-    if (!data) return;
-    if (data.like !== undefined) row.querySelector('input[name="like_count[]"]').value = data.like;
-    if (data.comment !== undefined) row.querySelector('input[name="comment_count[]"]').value = data.comment;
-    if (data.view !== undefined) row.querySelector('input[name="view_count[]"]').value = data.view;
-    if (data.share !== undefined) row.querySelector('input[name="share_count[]"]').value = data.share;
-    if (data.save !== undefined) row.querySelector('input[name="save_count[]"]').value = data.save;
-    if (data.follower !== undefined) row.querySelector('input[name="follower_count[]"]').value = data.follower;
-}
-
-function applyDraftToPage() {
-    document.querySelectorAll('tbody tr').forEach(tr => applyDraftToRow(tr));
-}
-
-function clearDraft() {
-    try { localStorage.removeItem(DRAFT_STORAGE_KEY); } catch (e) {}
-}
-
-// Function to clear draft when exiting /update page
-function clearDraftOnExit() {
-    clearDraft();
-    return true; // Allow navigation to continue
-}
-
-// Hook clearTemporaryData untuk juga menghapus draft lokal
-const __origClearTemp = clearTemporaryData;
-clearTemporaryData = function() {
-    clearDraft();
-    __origClearTemp();
-};
-
 function validateForm() {
     const inputs = document.querySelectorAll('input[type="number"]');
     let validReports = 0;
     let totalReports = 0;
-    let hasEmptyFields = false;
-    let reportData = [];
     
-    // Group inputs by report (6 fields per report)
-    const reports = [];
     const reportInputs = document.querySelectorAll('input[type="number"]');
     const totalReportsCount = reportInputs.length / 6;
     
     for (let i = 0; i < totalReportsCount; i++) {
-        const reportIndex = i;
         const reportFields = {
             like: reportInputs[i * 6],
             comment: reportInputs[i * 6 + 1],
@@ -420,87 +253,45 @@ function validateForm() {
             follower: reportInputs[i * 6 + 5]
         };
         
-        // Check if any field has value (including 0)
         const hasAnyValue = Object.values(reportFields).some(field => 
             field.value !== '' && field.value !== null && field.value !== undefined
         );
         
-        // Check if all fields are filled
         const allFieldsFilled = Object.values(reportFields).every(field => 
             field.value !== '' && field.value !== null && field.value !== undefined
         );
         
         if (hasAnyValue) {
             totalReports++;
-            
             if (allFieldsFilled) {
                 validReports++;
-                reportData.push({
-                    report: reportIndex + 1,
-                    fields: Object.values(reportFields).map(f => parseInt(f.value) || 0)
-                });
-            } else {
-                hasEmptyFields = true;
             }
         }
     }
     
-    // Remove validation styling
-    inputs.forEach(input => {
-        input.classList.remove('is-invalid');
-    });
-    
-    // Validation messages
     if (totalReports === 0) {
         Swal.fire({
             title: 'Tidak Ada Data',
             text: 'Silakan isi minimal satu laporan dengan data yang valid',
-            icon: 'warning',
-            confirmButtonText: 'OK',
-            confirmButtonColor: '#ffc107'
+            icon: 'warning'
         });
         return false;
     }
     
-    if (hasEmptyFields) {
+    if (validReports !== totalReports) {
         Swal.fire({
             title: 'Field Kosong',
             text: 'Ada laporan yang memiliki field kosong. Silakan isi semua field untuk laporan yang ingin diupdate.',
-            icon: 'warning',
-            confirmButtonText: 'OK',
-            confirmButtonColor: '#ffc107'
+            icon: 'warning'
         });
         return false;
     }
     
-    // Check for negative values
-    let hasNegative = false;
-    inputs.forEach(input => {
-        if (parseInt(input.value) < 0) {
-            input.value = '0';
-            hasNegative = true;
-        }
-    });
-    
-    if (hasNegative) {
-        Swal.fire({
-            title: 'Nilai Diperbaiki',
-            text: 'Nilai negatif telah otomatis diubah menjadi 0',
-            icon: 'info',
-            confirmButtonText: 'OK',
-            confirmButtonColor: '#0dcaf0',
-            timer: 3000
-        });
-    }
-    
-    // Show confirmation with SweetAlert2
     Swal.fire({
-        title: '📝 Konfirmasi Update',
+        title: 'Konfirmasi Update',
         html: `
             <div class="text-start">
                 <p><strong>${validReports}</strong> laporan akan diupdate</p>
-                <p>Semua field akan diisi dengan nilai yang dimasukkan (termasuk 0)</p>
-                <br>
                 <p class="text-muted">Apakah Anda yakin ingin melanjutkan?</p>
             </div>
         `,
@@ -508,41 +299,31 @@ function validateForm() {
         showCancelButton: true,
         confirmButtonColor: '#198754',
         cancelButtonColor: '#6c757d',
-        confirmButtonText: '<i class="bi bi-save me-1"></i> Ya, Update!',
-        cancelButtonText: '<i class="bi bi-x-lg me-1"></i> Batal',
-        reverseButtons: true
+        confirmButtonText: 'Ya, Update!',
+        cancelButtonText: 'Batal'
     }).then((result) => {
         if (result.isConfirmed) {
-            // User confirmed, clear draft and submit the form
-            clearDraft();
             const submitBtn = document.getElementById('submitBtn');
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Menyimpan...';
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Menyimpan...';
             submitBtn.disabled = true;
             document.getElementById('updateForm').submit();
         }
     });
     
-    return false; // Always prevent default form submission
+    return false;
 }
 
-// Initialize form
+// Initialize
 document.addEventListener('DOMContentLoaded', function() {
-    // Load temporary data if available
     loadTemporaryData();
-
-    // Terapkan draft dari localStorage
-    applyDraftToPage();
     
     const inputs = document.querySelectorAll('input[type="number"]');
-    
     inputs.forEach(input => {
-        // Ensure only positive numbers
         input.addEventListener('input', function() {
             if (parseInt(this.value) < 0) {
                 this.value = '';
             }
             
-            // Visual feedback for filled fields
             if (this.value && parseInt(this.value) > 0) {
                 this.style.backgroundColor = '#f0f9ff';
                 this.style.borderColor = '#0ea5e9';
@@ -551,45 +332,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.style.borderColor = '';
             }
         });
-        
-        // Format large numbers on blur
-        input.addEventListener('blur', function() {
-            if (this.value && parseInt(this.value) > 0) {
-                // Add thousand separators for display (optional)
-                // Uncomment if you want thousand separators
-                // const formatted = parseInt(this.value).toLocaleString();
-                // this.setAttribute('title', formatted);
-            }
-        });
-        
-        // Allow paste and auto-format
-        input.addEventListener('paste', function(e) {
-            setTimeout(() => {
-                let value = this.value.replace(/[^\d]/g, ''); // Remove non-digits
-                if (value) {
-                    this.value = value;
-                    this.dispatchEvent(new Event('input'));
-                }
-            }, 0);
-        });
-    });
-
-    // Simpan per baris saat input berubah (debounce ringan)
-    let saveTimer;
-    document.querySelectorAll('tbody tr').forEach(tr => {
-        tr.querySelectorAll('input[type="number"]').forEach(inp => {
-            ['input','change','blur'].forEach(evt => {
-                inp.addEventListener(evt, () => {
-                    clearTimeout(saveTimer);
-                    saveTimer = setTimeout(() => saveRowToDraft(tr), 150);
-                });
-            });
-        });
     });
     
-    // Add keyboard shortcuts
     document.addEventListener('keydown', function(e) {
-        // Ctrl+S to submit
         if (e.ctrlKey && e.key === 's') {
             e.preventDefault();
             if (document.getElementById('updateForm')) {
@@ -599,22 +344,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Clear draft when leaving /update page (only for navigation, not pagination)
-window.addEventListener('beforeunload', function(e) {
-    const newURL = e.target.activeElement ? e.target.activeElement.href : '';
-    const currentPath = window.location.pathname;
-    
-    // Only clear if leaving /update page entirely, not pagination within /update
-    if (currentPath.includes('/update') && newURL && !newURL.includes('/update')) {
-        clearDraft();
-    }
-});
-
-// Handle form submission
 document.getElementById('updateForm')?.addEventListener('submit', function(e) {
-    e.preventDefault(); // Always prevent default submission
-    // Biarkan draft tetap ada agar jika gagal, data tidak hilang.
-    // Draft akan dihapus manual oleh user melalui tombol, atau bisa dihapus setelah landing di /reports jika diperlukan.
-    validateForm(); // Let validation handle the submission
+    e.preventDefault();
+    validateForm();
 });
 </script>

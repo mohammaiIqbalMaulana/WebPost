@@ -115,6 +115,14 @@
                         </div>
                     </div>
                 </div>
+                <div class="card mb-3">
+                    <div class="card-body py-2">
+                        <div class="fw-semibold mb-2">Total Postingan</div>
+                        <div class="small">
+                            <div><strong>Total Postingan:</strong> <%= (typeof totalPostingan === 'number' ? totalPostingan : (reports?.length || 0)).toLocaleString() %></div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="col-md-6">
                 <div class="card mb-3">
@@ -221,7 +229,6 @@
                 </div>
             </div>
         </div>
-
         <div class="card mt-2">
             <div class="card-body py-2">
                 <div class="fw-semibold mb-2">Rata-rata Engagement Rate (ER)</div>

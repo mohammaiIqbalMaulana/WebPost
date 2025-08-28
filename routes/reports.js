@@ -6,23 +6,6 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// Middleware untuk menyimpan data sementara
-const saveTempData = (req, res, next) => {
-  if (req.method === 'POST' && req.path === '/update') {
-    // Simpan data ke session sebelum redirect
-    req.session.tempUpdateData = {
-      ids: req.body['ids[]'],
-      like_count: req.body['like_count[]'],
-      comment_count: req.body['comment_count[]'],
-      view_count: req.body['view_count[]'],
-      share_count: req.body['share_count[]'],
-      save_count: req.body['save_count[]'],
-      follower_count: req.body['follower_count[]']
-    };
-  }
-  next();
-};
-
 // Helper function to check if target is achieved
 function isTargetAchieved(engagementRate, targetRate) {
     if (!targetRate || targetRate <= 0) return false;
@@ -158,29 +141,13 @@ router.get('/update', async (req, res) => {
     const cutoffDate = new Date();
     cutoffDate.setDate(today.getDate() - 30); // 30 hari ke belakang
 
-    // Pagination params
-    const allowedPerPage = [5, 10, 50, 100];
-    const page = Math.max(parseInt(req.query.page) || 1, 1);
-    const perPageRaw = parseInt(req.query.perPage) || 10;
-    const perPage = allowedPerPage.includes(perPageRaw) ? perPageRaw : 10;
-
-    // Count reports from last 30 days
-    const [[{ total }]] = await db.query(
-      `SELECT COUNT(*) AS total FROM reports WHERE post_date >= ?`,
-      [cutoffDate.toISOString().split('T')[0]]
-    );
-    const totalPages = Math.max(Math.ceil(total / perPage), 1);
-    const currentPage = Math.min(page, totalPages);
-    const offset = (currentPage - 1) * perPage;
-
-    // Get paginated reports from last 30 days
+    // Get ALL reports from last 30 days (tanpa pagination)
     const [reports] = await db.query(
       `SELECT id, judul, post_url, post_date 
        FROM reports 
        WHERE post_date >= ? 
-       ORDER BY post_date DESC, created_at DESC 
-       LIMIT ? OFFSET ?`,
-      [cutoffDate.toISOString().split('T')[0], perPage, offset]
+       ORDER BY post_date DESC, created_at DESC`,
+      [cutoffDate.toISOString().split('T')[0]]
     );
 
     // Ambil data sementara dari session jika ada
@@ -189,15 +156,7 @@ router.get('/update', async (req, res) => {
     res.render('reports/update', {
       reports: reports,
       title: "Update Reports (30 Hari Terakhir)",
-      tempData: tempData, // Kirim data sementara ke view
-      pagination: {
-        totalItems: total,
-        totalPages,
-        currentPage,
-        perPage,
-        allowedPerPage,
-        offset
-      }
+      tempData: tempData // Kirim data sementara ke view
     });
   } catch (err) {
     console.error("Error GET /update:", err);
@@ -533,15 +492,26 @@ router.get('/print/export', async (req, res) => {
       .filter(r => r.post_date)
       .sort((a, b) => new Date(a.post_date) - new Date(b.post_date));
 
-    const pickStartEnd = (key) => {
-      const series = sortedByDate.filter(r => r[key] !== null && r[key] !== undefined);
-      if (series.length === 0) return { start: null, end: null, diff: null, pct: null };
-      const startVal = Number(series[0][key]);
-      const endVal = Number(series[series.length - 1][key]);
-      const diff = endVal - startVal;
-      const pct = startVal > 0 ? (diff / startVal) * 100 : null;
-      return { start: startVal, end: endVal, diff, pct };
-    };
+  const pickStartEnd = (key) => {
+    const series = sortedByDate.filter(r => r[key] !== null && r[key] !== undefined);
+    if (series.length === 0) return { start: null, end: null, diff: null, pct: null };
+    const startVal = Number(series[0][key]);
+    const endVal = Number(series[series.length - 1][key]);
+    const diff = endVal - startVal;
+    
+    let pct = null;
+    if (startVal > 0) {
+      pct = (diff / startVal) * 100;
+    } else if (startVal === 0 && endVal > 0) {
+      // Kasus khusus: dari 0 ke nilai positif = peningkatan tak terbatas
+      // Bisa ditampilkan sebagai "∞%" atau "100%" atau nilai maksimum
+      pct = 100; // atau bisa pakai 999 untuk indikasi "sangat tinggi"
+    } else if (startVal === 0 && endVal === 0) {
+      pct = 0; // tidak ada perubahan
+    }
+    
+    return { start: startVal, end: endVal, diff, pct };
+  };
 
     const metricChange = {
       view: pickStartEnd('view_count'),
@@ -591,6 +561,9 @@ router.get('/print/export', async (req, res) => {
         // skip error
       }
     }
+
+    const totalPostingan = reports.length;
+
     const averageER = erCount > 0 ? (erSum / erCount) : 0;
 
     // Set header untuk Excel jika dipilih
@@ -610,7 +583,8 @@ router.get('/print/export', async (req, res) => {
       totals,
       followerChange,
       metricChange,
-      averageER
+      averageER,
+      totalPostingan
     });
   } catch (err) {
     console.error('Error GET /print/export:', err);

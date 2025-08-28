@@ -517,6 +517,82 @@ router.get('/print/export', async (req, res) => {
       ORDER BY post_date DESC, created_at DESC
     `, [start_date, end_date]);
 
+    // Aggregate totals for insights
+    const totals = reports.reduce((acc, r) => {
+      acc.view += Number(r.view_count || 0);
+      acc.like += Number(r.like_count || 0);
+      acc.comment += Number(r.comment_count || 0);
+      acc.share += Number(r.share_count || 0);
+      acc.save += Number(r.save_count || 0);
+      return acc;
+    }, { view: 0, like: 0, comment: 0, share: 0, save: 0 });
+
+    // Perubahan insight seperti follower: bandingkan nilai awal vs akhir dalam rentang
+    const sortedByDate = reports
+      .slice()
+      .filter(r => r.post_date)
+      .sort((a, b) => new Date(a.post_date) - new Date(b.post_date));
+
+    const pickStartEnd = (key) => {
+      const series = sortedByDate.filter(r => r[key] !== null && r[key] !== undefined);
+      if (series.length === 0) return { start: null, end: null, diff: null, pct: null };
+      const startVal = Number(series[0][key]);
+      const endVal = Number(series[series.length - 1][key]);
+      const diff = endVal - startVal;
+      const pct = startVal > 0 ? (diff / startVal) * 100 : null;
+      return { start: startVal, end: endVal, diff, pct };
+    };
+
+    const metricChange = {
+      view: pickStartEnd('view_count'),
+      like: pickStartEnd('like_count'),
+      comment: pickStartEnd('comment_count'),
+      share: pickStartEnd('share_count'),
+      save: pickStartEnd('save_count')
+    };
+
+    // Calculate follower change (earliest vs latest by post_date with non-null follower_count)
+    let followerChange = { start: null, end: null, diff: null, pct: null };
+    const followerSeries = reports
+      .filter(r => r.follower_count !== null && r.follower_count !== undefined)
+      .slice()
+      .sort((a, b) => new Date(a.post_date) - new Date(b.post_date));
+    if (followerSeries.length >= 1) {
+      const startFollower = Number(followerSeries[0].follower_count);
+      const endFollower = Number(followerSeries[followerSeries.length - 1].follower_count);
+      const diff = endFollower - startFollower;
+      const pct = startFollower > 0 ? (diff / startFollower) * 100 : null;
+      followerChange = { start: startFollower, end: endFollower, diff, pct };
+    }
+
+    // Hitung rata-rata ER per posting menggunakan formula aktif
+    const [formulas] = await db.query(
+      "SELECT * FROM formula_settings WHERE is_active = TRUE ORDER BY id DESC LIMIT 1"
+    );
+    const currentFormula = formulas.length > 0 ? formulas[0] : {
+      engagement_formula: '(like + comment + share + save) / view * 100'
+    };
+    let erSum = 0;
+    let erCount = 0;
+    for (const r of reports) {
+      try {
+        let formula = currentFormula.engagement_formula;
+        formula = formula.replace(/like/g, r.like_count || 0);
+        formula = formula.replace(/comment/g, r.comment_count || 0);
+        formula = formula.replace(/view/g, r.view_count || 0);
+        formula = formula.replace(/share/g, r.share_count || 0);
+        formula = formula.replace(/save/g, r.save_count || 0);
+        formula = formula.replace(/follower/g, r.follower_count || 0);
+        const erVal = eval(formula);
+        const erNum = isNaN(erVal) ? 0 : Number(erVal);
+        erSum += erNum;
+        erCount += 1;
+      } catch (e) {
+        // skip error
+      }
+    }
+    const averageER = erCount > 0 ? (erSum / erCount) : 0;
+
     // Set header untuk Excel jika dipilih
     if (exportFormat === 'excel') {
       res.setHeader('Content-Type', 'application/vnd.ms-excel');
@@ -530,7 +606,11 @@ router.get('/print/export', async (req, res) => {
       end_date,
       includeThumbs,
       formatDate,
-      insights
+      insights,
+      totals,
+      followerChange,
+      metricChange,
+      averageER
     });
   } catch (err) {
     console.error('Error GET /print/export:', err);

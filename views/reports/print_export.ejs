@@ -89,6 +89,162 @@
         <% }) %>
         </tbody>
     </table>
+    <div class="mt-4">
+        <h5 class="mb-2">Ringkasan Statistik</h5>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-body py-2">
+                        <div class="fw-semibold mb-2">Total Insight</div>
+                        <div class="small">
+                            <% if (Array.isArray(insights) ? insights.includes('view') : true) { %>
+                              <div><strong>Total View:</strong> <%= (totals?.view || 0).toLocaleString() %></div>
+                            <% } %>
+                            <% if (Array.isArray(insights) ? insights.includes('like') : true) { %>
+                              <div><strong>Total Like:</strong> <%= (totals?.like || 0).toLocaleString() %></div>
+                            <% } %>
+                            <% if (Array.isArray(insights) ? insights.includes('comment') : true) { %>
+                              <div><strong>Total Comment:</strong> <%= (totals?.comment || 0).toLocaleString() %></div>
+                            <% } %>
+                            <% if (Array.isArray(insights) ? insights.includes('share') : true) { %>
+                              <div><strong>Total Share:</strong> <%= (totals?.share || 0).toLocaleString() %></div>
+                            <% } %>
+                            <% if (Array.isArray(insights) ? insights.includes('save') : true) { %>
+                              <div><strong>Total Save:</strong> <%= (totals?.save || 0).toLocaleString() %></div>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-body py-2">
+                        <div class="fw-semibold mb-2">Perubahan Follower</div>
+                        <% 
+                          const hasFollower = followerChange && followerChange.start !== null && followerChange.end !== null; 
+                          const diff = hasFollower ? followerChange.diff : 0;
+                          const pct = hasFollower ? followerChange.pct : null;
+                          const trendUp = hasFollower ? diff >= 0 : null;
+                          const trendClass = trendUp ? 'text-success' : 'text-danger';
+                          const badgeClass = trendUp 
+                            ? 'badge rounded-pill bg-success-subtle text-success border border-success-subtle' 
+                            : 'badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle';
+                          const progressClass = trendUp ? 'bg-success' : 'bg-danger';
+                          const pctAbs = pct !== null ? Math.min(Math.abs(pct), 100) : 0;
+                        %>
+
+                        <% if (hasFollower) { %>
+                          <div class="d-flex align-items-baseline justify-content-between">
+                            <div>
+                              <div class="text-muted small">Total Follower Akhir</div>
+                              <div class="display-6 mb-0 <%= trendClass %>"><%= followerChange.end.toLocaleString() %></div>
+                            </div>
+                            <div>
+                              <span class="<%= badgeClass %>">
+                                <%= (diff >= 0 ? '+' : '') + diff.toLocaleString() %>
+                              </span>
+                            </div>
+                          </div>
+
+                          <div class="progress mt-3" style="height: 8px;">
+                            <div class="progress-bar <%= progressClass %> js-follower-progress" role="progressbar" data-pct="<%= pctAbs %>" aria-valuenow="<%= pctAbs %>" aria-valuemin="0" aria-valuemax="100"></div>
+                          </div>
+                          <div class="d-flex justify-content-between mt-1 small text-muted">
+                            <span>Awal: <strong><%= followerChange.start.toLocaleString() %></strong></span>
+                            <span>Perubahan: <strong class="<%= trendClass %>"><%= pct !== null ? (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%' : '-' %></strong></span>
+                          </div>
+
+                          <ul class="list-group list-group-flush mt-3">
+                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                              <span class="text-muted">Follower Awal</span>
+                              <span class="fw-semibold"><%= followerChange.start.toLocaleString() %></span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                              <span class="text-muted">Follower Akhir</span>
+                              <span class="fw-semibold"><%= followerChange.end.toLocaleString() %></span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                              <span class="text-muted">Selisih</span>
+                              <span class="fw-semibold <%= trendClass %>"><%= (diff >= 0 ? '+' : '') + diff.toLocaleString() %></span>
+                            </li>
+                          </ul>
+                        <% } else { %>
+                          <div class="alert alert-light border small mb-0" role="alert">
+                            Tidak ada data follower yang memadai di rentang ini.
+                          </div>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-2">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="fw-semibold">Perubahan Insight (Awal → Akhir)</div>
+                    <span class="badge text-bg-light border">Rentang: <%= start_date %> s/d <%= end_date %></span>
+                </div>
+                <div class="row g-3">
+                    <% const items = [
+                        { key: 'view', label: 'View' },
+                        { key: 'like', label: 'Like' },
+                        { key: 'comment', label: 'Comment' },
+                        { key: 'share', label: 'Share' },
+                        { key: 'save', label: 'Save' }
+                    ]; %>
+                    <% items.forEach(it => { 
+                         const show = Array.isArray(insights) ? insights.includes(it.key) : true; 
+                         const t = metricChange && metricChange[it.key];
+                    %>
+                      <% if (show && t) { %>
+                        <div class="col-sm-6 col-lg-4">
+                          <div class="border rounded p-2 h-100">
+                            <div class="d-flex justify-content-between align-items-center">
+                              <div class="fw-semibold"><%= it.label %></div>
+                              <% const isUp = t.diff !== null ? t.diff >= 0 : null; %>
+                              <span class="badge rounded-pill <%= isUp ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle' %>">
+                                <%= (isUp ? '+' : '') + (t.diff !== null ? t.diff.toLocaleString() : '0') %>
+                              </span>
+                            </div>
+                            <div class="small text-muted">Akhir: <strong><%= (t.end !== null ? t.end.toLocaleString() : '0') %></strong> • Awal: <strong><%= (t.start !== null ? t.start.toLocaleString() : '0') %></strong></div>
+                            <div class="progress mt-2" style="height: 6px;">
+                              <% const pctAbs2 = Math.min(Math.abs((t.pct !== null ? t.pct : 0)), 100); %>
+                              <div class="progress-bar <%= isUp ? 'bg-success' : 'bg-danger' %> js-metric-progress" data-pct="<%= pctAbs2 %>" style="width:0%" role="progressbar" aria-valuenow="<%= pctAbs2 %>" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <div class="d-flex justify-content-end mt-1 small">
+                              <span class="<%= isUp ? 'text-success' : 'text-danger' %>"><%= (t.pct !== null ? (t.pct >= 0 ? '+' : '') + t.pct.toFixed(2) + '%' : '-') %></span>
+                            </div>
+                          </div>
+                        </div>
+                      <% } %>
+                    <% }) %>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-2">
+            <div class="card-body py-2">
+                <div class="fw-semibold mb-2">Rata-rata Engagement Rate (ER)</div>
+                <div class="d-flex align-items-baseline gap-2">
+                    <div class="display-6 mb-0"><%= (averageER || 0).toFixed(2) %>%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+      (function(){
+        const bars1 = document.querySelectorAll('.js-follower-progress');
+        bars1.forEach(bar => {
+          const pct = Number(bar.getAttribute('data-pct') || 0);
+          bar.style.width = (pct > 100 ? 100 : pct) + '%';
+        });
+        const bars2 = document.querySelectorAll('.js-metric-progress');
+        bars2.forEach(bar => {
+          const pct = Number(bar.getAttribute('data-pct') || 0);
+          bar.style.width = (pct > 100 ? 100 : pct) + '%';
+        });
+      })();
+    </script>
 </body>
 </html>
 

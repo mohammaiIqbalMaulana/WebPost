@@ -73,7 +73,9 @@
                                 <input type="number" 
                                        name="like_count[]" 
                                        class="form-control form-control-sm text-center" 
-                                       min="0" 
+                                       min="0"
+                                       required
+                                       value="<%= report.like_count || 0 %>"
                                        data-field="like"
                                        title="Masukkan jumlah like terbaru">
                             </td>
@@ -81,7 +83,9 @@
                                 <input type="number" 
                                        name="comment_count[]" 
                                        class="form-control form-control-sm text-center"
-                                       min="0" 
+                                       min="0"
+                                       required
+                                       value="<%= report.comment_count || 0 %>"
                                        data-field="comment"
                                        title="Masukkan jumlah komentar terbaru">
                             </td>
@@ -89,7 +93,9 @@
                                 <input type="number" 
                                        name="view_count[]" 
                                        class="form-control form-control-sm text-center" 
-                                       min="0" 
+                                       min="0"
+                                       required
+                                       value="<%= report.view_count || 0 %>"
                                        data-field="view"
                                        title="Masukkan jumlah view terbaru">
                             </td>
@@ -97,7 +103,9 @@
                                 <input type="number" 
                                        name="share_count[]" 
                                        class="form-control form-control-sm text-center"
-                                       min="0" 
+                                       min="0"
+                                       required
+                                       value="<%= report.share_count || 0 %>"
                                        data-field="share"
                                        title="Masukkan jumlah share terbaru">
                             </td>
@@ -105,7 +113,9 @@
                                 <input type="number" 
                                        name="save_count[]" 
                                        class="form-control form-control-sm text-center" 
-                                       min="0" 
+                                       min="0"
+                                       required 
+                                       value="<%= report.save_count || 0 %>"
                                        data-field="save"
                                        title="Masukkan jumlah save terbaru">
                             </td>
@@ -113,7 +123,9 @@
                                 <input type="number" 
                                        name="follower_count[]" 
                                        class="form-control form-control-sm text-center"
-                                       min="0" 
+                                       min="0"
+                                       required
+                                       value="<%= report.follower_count || 0 %>"
                                        data-field="follower"
                                        title="Masukkan jumlah follower terbaru">
                             </td>
@@ -166,19 +178,16 @@ function validateForm() {
             follower: reportInputs[i * 6 + 5]
         };
         
-        const hasAnyValue = Object.values(reportFields).some(field => 
-            field.value !== '' && field.value !== null && field.value !== undefined
-        );
-        
         const allFieldsFilled = Object.values(reportFields).every(field => 
-            field.value !== '' && field.value !== null && field.value !== undefined
+            field.value !== '' && field.value !== null && field.value !== undefined && parseInt(field.value) >= 0
         );
-        
-        if (hasAnyValue) {
+
+        if (allFieldsFilled) {
+            validReports++;
             totalReports++;
-            if (allFieldsFilled) {
-                validReports++;
-            }
+        } else {
+            // Jika ada field yang kosong, hitung sebagai report yang tidak valid
+            totalReports++;
         }
     }
     

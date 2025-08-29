@@ -143,7 +143,7 @@ router.get('/update', async (req, res) => {
 
     // Get ALL reports from last 30 days (tanpa pagination)
     const [reports] = await db.query(
-      `SELECT id, judul, post_url, post_date 
+      `SELECT id, judul, post_url, post_date, like_count, comment_count, view_count, share_count, save_count, follower_count
        FROM reports 
        WHERE post_date >= ? 
        ORDER BY post_date DESC, created_at DESC`,
@@ -238,10 +238,11 @@ router.post('/update', async (req, res) => {
         const save = parseValue(save_count[i]);
         const follower = parseValue(follower_count[i]);
 
-        // Skip jika semua field kosong untuk report ini
-        if (like === null && comment === null && view === null && 
-            share === null && save === null && follower === null) {
-          continue; // Skip report ini, tidak ada yang diupdate
+        // Validasi semua field harus diisi (tidak boleh kosong)
+        if (like === null || comment === null || view === null || 
+          share === null || save === null || follower === null) {
+        errors.push(`Report "${ids[i]}" - Semua field harus diisi, tidak boleh kosong`);
+        continue;
         }
 
         // Update database dengan nilai yang valid

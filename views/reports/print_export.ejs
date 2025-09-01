@@ -89,13 +89,35 @@
         <% }) %>
         </tbody>
     </table>
-    <div class="mt-4">
-        <h5 class="mb-2">Ringkasan Statistik</h5>
+            <div class="mt-4">
+        <h5 class="mb-2">
+            <% if (comparison_month) { %>
+                Ringkasan Statistik (Perbandingan Antar Bulan)
+            <% } else { %>
+                Ringkasan Statistik
+            <% } %>
+        </h5>
+        
+        <% if (comparison_month) { %>
+            <div class="alert alert-info mb-3">
+                <i class="bi bi-info-circle me-2"></i>
+                <strong>Perbandingan:</strong> 
+                Periode <%= start_date %> s/d <%= end_date %> vs  
+                <%  if (comparison_month === 'custom') { %>
+                    <%= comparisonStartDate %> s/d <%= comparisonEndDate %>
+                <% } %>
+            </div>
         <div class="row">
             <div class="col-md-6">
                 <div class="card mb-3">
                     <div class="card-body py-2">
-                        <div class="fw-semibold mb-2">Total Insight</div>
+                        <div class="fw-semibold mb-2">
+                            <% if (comparison_month) { %>
+                                Total Insight (Periode Ini)
+                            <% } else { %>
+                                Total Insight
+                            <% } %>
+                        </div>
                         <div class="small">
                             <% if (Array.isArray(insights) ? insights.includes('view') : true) { %>
                               <div><strong>Total View:</strong> <%= (totals?.view || 0).toLocaleString() %></div>
@@ -113,6 +135,28 @@
                               <div><strong>Total Save:</strong> <%= (totals?.save || 0).toLocaleString() %></div>
                             <% } %>
                         </div>
+                        
+                        <% if (comparison_month && comparisonTotals) { %>
+                            <hr class="my-2">
+                            <div class="fw-semibold text-muted small">Periode Sebelum:</div>
+                            <div class="small">
+                                <% if (Array.isArray(insights) ? insights.includes('view') : true) { %>
+                                  <div><strong>Total View:</strong> <%= (comparisonTotals?.view || 0).toLocaleString() %></div>
+                                <% } %>
+                                <% if (Array.isArray(insights) ? insights.includes('like') : true) { %>
+                                  <div><strong>Total Like:</strong> <%= (comparisonTotals?.like || 0).toLocaleString() %></div>
+                                <% } %>
+                                <% if (Array.isArray(insights) ? insights.includes('comment') : true) { %>
+                                  <div><strong>Total Comment:</strong> <%= (comparisonTotals?.comment || 0).toLocaleString() %></div>
+                                <% } %>
+                                <% if (Array.isArray(insights) ? insights.includes('share') : true) { %>
+                                  <div><strong>Total Share:</strong> <%= (comparisonTotals?.share || 0).toLocaleString() %></div>
+                                <% } %>
+                                <% if (Array.isArray(insights) ? insights.includes('save') : true) { %>
+                                  <div><strong>Total Save:</strong> <%= (comparisonTotals?.save || 0).toLocaleString() %></div>
+                                <% } %>
+                            </div>
+                        <% } %>
                     </div>
                 </div>
                 <div class="card mb-3">
@@ -127,25 +171,60 @@
             <div class="col-md-6">
                 <div class="card mb-3">
                     <div class="card-body py-2">
-                        <div class="fw-semibold mb-2">Perubahan Follower</div>
+                        <div class="fw-semibold mb-2">
+                            <% if (comparison_month) { %>
+                                Perbandingan Follower Antar Bulan
+                            <% } else { %>
+                                Perubahan Follower
+                            <% } %>
+                        </div>
                         <% 
-                          const hasFollower = followerChange && followerChange.start !== null && followerChange.end !== null; 
-                          const diff = hasFollower ? followerChange.diff : 0;
-                          const pct = hasFollower ? followerChange.pct : null;
-                          const trendUp = hasFollower ? diff >= 0 : null;
-                          const trendClass = trendUp ? 'text-success' : 'text-danger';
-                          const badgeClass = trendUp 
-                            ? 'badge rounded-pill bg-success-subtle text-success border border-success-subtle' 
-                            : 'badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle';
-                          const progressClass = trendUp ? 'bg-success' : 'bg-danger';
-                          const pctAbs = pct !== null ? Math.min(Math.abs(pct), 100) : 0;
+                          let hasFollower, diff, pct, trendUp, trendClass, badgeClass, progressClass, pctAbs;
+                          
+                          if (comparison_month) {
+                            // Perbandingan antar bulan
+                            hasFollower = followerChange && followerChange.current !== null && followerChange.comparison !== null;
+                            diff = hasFollower ? followerChange.diff : 0;
+                            pct = hasFollower ? followerChange.pct : null;
+                            trendUp = hasFollower ? diff >= 0 : null;
+                            trendClass = trendUp ? 'text-success' : 'text-danger';
+                            badgeClass = trendUp 
+                              ? 'badge rounded-pill bg-success-subtle text-success border border-success-subtle' 
+                              : 'badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle';
+                            progressClass = trendUp ? 'bg-success' : 'bg-danger';
+                            pctAbs = pct !== null ? Math.min(Math.abs(pct), 100) : 0;
+                          } else {
+                            // Perubahan dalam rentang yang sama (seperti sebelumnya)
+                            hasFollower = followerChange && followerChange.start !== null && followerChange.end !== null; 
+                            diff = hasFollower ? followerChange.diff : 0;
+                            pct = hasFollower ? followerChange.pct : null;
+                            trendUp = hasFollower ? diff >= 0 : null;
+                            trendClass = trendUp ? 'text-success' : 'text-danger';
+                            badgeClass = trendUp 
+                              ? 'badge rounded-pill bg-success-subtle text-success border border-success-subtle' 
+                              : 'badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle';
+                            progressClass = trendUp ? 'bg-success' : 'bg-danger';
+                            pctAbs = pct !== null ? Math.min(Math.abs(pct), 100) : 0;
+                          }
                         %>
 
                         <% if (hasFollower) { %>
                           <div class="d-flex align-items-baseline justify-content-between">
                             <div>
-                              <div class="text-muted small">Total Follower Akhir</div>
-                              <div class="display-6 mb-0 <%= trendClass %>"><%= followerChange.end.toLocaleString() %></div>
+                              <div class="text-muted small">
+                                <% if (comparison_month) { %>
+                                    Total Follower Periode Ini
+                                <% } else { %>
+                                    Total Follower Akhir
+                                <% } %>
+                              </div>
+                              <div class="display-6 mb-0 <%= trendClass %>">
+                                <% if (comparison_month) { %>
+                                    <%= followerChange.current.toLocaleString() %>
+                                <% } else { %>
+                                    <%= followerChange.end.toLocaleString() %>
+                                <% } %>
+                              </div>
                             </div>
                             <div>
                               <span class="<%= badgeClass %>">
@@ -158,19 +237,34 @@
                             <div class="progress-bar <%= progressClass %> js-follower-progress" role="progressbar" data-pct="<%= pctAbs %>" aria-valuenow="<%= pctAbs %>" aria-valuemin="0" aria-valuemax="100"></div>
                           </div>
                           <div class="d-flex justify-content-between mt-1 small text-muted">
-                            <span>Awal: <strong><%= followerChange.start.toLocaleString() %></strong></span>
-                            <span>Perubahan: <strong class="<%= trendClass %>"><%= pct !== null ? (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%' : '-' %></strong></span>
+                            <% if (comparison_month) { %>
+                                <span>Periode Sebelum: <strong><%= followerChange.comparison.toLocaleString() %></strong></span>
+                            <% } else { %>
+                                <span>Awal: <strong><%= followerChange.start.toLocaleString() %></strong></span>
+                            <% } %>
+                            <span>Perubahan: <strong class="<%= trendClass %>"><%= (pct !== null ? (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%' : '-') %></strong></span>
                           </div>
 
                           <ul class="list-group list-group-flush mt-3">
-                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                              <span class="text-muted">Follower Awal</span>
-                              <span class="fw-semibold"><%= followerChange.start.toLocaleString() %></span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                              <span class="text-muted">Follower Akhir</span>
-                              <span class="fw-semibold"><%= followerChange.end.toLocaleString() %></span>
-                            </li>
+                            <% if (comparison_month) { %>
+                                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                  <span class="text-muted">Follower Periode Sebelum</span>
+                                  <span class="fw-semibold"><%= followerChange.comparison.toLocaleString() %></span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                  <span class="text-muted">Follower Periode Ini</span>
+                                  <span class="fw-semibold"><%= followerChange.current.toLocaleString() %></span>
+                                </li>
+                            <% } else { %>
+                                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                  <span class="text-muted">Follower Awal</span>
+                                  <span class="fw-semibold"><%= followerChange.start.toLocaleString() %></span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                  <span class="text-muted">Follower Akhir</span>
+                                  <span class="fw-semibold"><%= followerChange.end.toLocaleString() %></span>
+                                </li>
+                            <% } %>
                             <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                               <span class="text-muted">Selisih</span>
                               <span class="fw-semibold <%= trendClass %>"><%= (diff >= 0 ? '+' : '') + diff.toLocaleString() %></span>
@@ -178,7 +272,11 @@
                           </ul>
                         <% } else { %>
                           <div class="alert alert-light border small mb-0" role="alert">
-                            Tidak ada data follower yang memadai di rentang ini.
+                            <% if (comparison_month) { %>
+                                Tidak ada data follower yang memadai untuk perbandingan antar bulan.
+                            <% } else { %>
+                                Tidak ada data follower yang memadai di rentang ini.
+                            <% } %>
                           </div>
                         <% } %>
                     </div>
@@ -189,44 +287,103 @@
         <div class="card mt-2">
             <div class="card-body">
                 <div class="d-flex align-items-center justify-content-between mb-2">
-                    <div class="fw-semibold">Perubahan Insight (Awal → Akhir)</div>
-                    <span class="badge text-bg-light border">Rentang: <%= start_date %> s/d <%= end_date %></span>
+                    <div class="fw-semibold">
+                        <% if (comparison_month) { %>
+                            Perbandingan Insight: <%= start_date %> s/d <%= end_date %> vs 
+                            <% } if (comparison_month === 'custom') { %>
+                                <%= comparisonStartDate %> s/d <%= comparisonEndDate %>
+                            <% } %>
+                        <% } else { %>
+                            Perubahan Insight (Awal → Akhir)
+                        <% } %>
+                    </div>
+                    <span class="badge text-bg-light border">
+                        <% if (comparison_month) { %>
+                            Perbandingan Antar Bulan
+                        <% } else { %>
+                            Rentang: <%= start_date %> s/d <%= end_date %>
+                        <% } %>
+                    </span>
                 </div>
-                <div class="row g-3">
-                    <% const items = [
-                        { key: 'view', label: 'View' },
-                        { key: 'like', label: 'Like' },
-                        { key: 'comment', label: 'Comment' },
-                        { key: 'share', label: 'Share' },
-                        { key: 'save', label: 'Save' }
-                    ]; %>
-                    <% items.forEach(it => { 
-                         const show = Array.isArray(insights) ? insights.includes(it.key) : true; 
-                         const t = metricChange && metricChange[it.key];
-                    %>
-                      <% if (show && t) { %>
-                        <div class="col-sm-6 col-lg-4">
-                          <div class="border rounded p-2 h-100">
-                            <div class="d-flex justify-content-between align-items-center">
-                              <div class="fw-semibold"><%= it.label %></div>
-                              <% const isUp = t.diff !== null ? t.diff >= 0 : null; %>
-                              <span class="badge rounded-pill <%= isUp ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle' %>">
-                                <%= (isUp ? '+' : '') + (t.diff !== null ? t.diff.toLocaleString() : '0') %>
-                              </span>
+                
+                <% if (comparison_month) { %>
+                    <!-- Tampilkan perbandingan antar bulan -->
+                    <div class="row g-3">
+                        <% const items = [
+                            { key: 'view', label: 'View' },
+                            { key: 'like', label: 'Like' },
+                            { key: 'comment', label: 'Comment' },
+                            { key: 'share', label: 'Share' },
+                            { key: 'save', label: 'Save' }
+                        ]; %>
+                        <% items.forEach(it => { 
+                             const show = Array.isArray(insights) ? insights.includes(it.key) : true; 
+                             const t = metricChange && metricChange[it.key];
+                        %>
+                          <% if (show && t) { %>
+                            <div class="col-sm-6 col-lg-4">
+                              <div class="border rounded p-2 h-100">
+                                <div class="d-flex justify-content-between align-items-center">
+                                  <div class="fw-semibold"><%= it.label %></div>
+                                  <% const isUp = t.diff !== null ? t.diff >= 0 : null; %>
+                                  <span class="badge rounded-pill <%= isUp ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle' %>">
+                                    <%= (isUp ? '+' : '') + (t.diff !== null ? t.diff.toLocaleString() : '0') %>
+                                  </span>
+                                </div>
+                                <div class="small text-muted">
+                                    Periode Ini: <strong><%= (t.current !== null ? t.current.toLocaleString() : '0') %></strong> • 
+                                    Periode Sebelum: <strong><%= (t.comparison !== null ? t.comparison.toLocaleString() : '0') %></strong>
+                                </div>
+                                <div class="progress mt-2" style="height: 6px;">
+                                  <% const pctAbs2 = Math.min(Math.abs((t.pct !== null ? t.pct : 0)), 100); %>
+                                  <div class="progress-bar <%= isUp ? 'bg-success' : 'bg-danger' %> js-metric-progress" data-pct="<%= pctAbs2 %>" style="width:0%" role="progressbar" aria-valuenow="<%= pctAbs2 %>" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <div class="d-flex justify-content-end mt-1 small">
+                                  <span class="<%= isUp ? 'text-success' : 'text-danger' %>"><%= (t.pct !== null ? (t.pct >= 0 ? '+' : '') + t.pct.toFixed(2) + '%' : '-') %></span>
+                                </div>
+                              </div>
                             </div>
-                            <div class="small text-muted">Akhir: <strong><%= (t.end !== null ? t.end.toLocaleString() : '0') %></strong> • Awal: <strong><%= (t.start !== null ? t.start.toLocaleString() : '0') %></strong></div>
-                            <div class="progress mt-2" style="height: 6px;">
-                              <% const pctAbs2 = Math.min(Math.abs((t.pct !== null ? t.pct : 0)), 100); %>
-                              <div class="progress-bar <%= isUp ? 'bg-success' : 'bg-danger' %> js-metric-progress" data-pct="<%= pctAbs2 %>" style="width:0%" role="progressbar" aria-valuenow="<%= pctAbs2 %>" aria-valuemin="0" aria-valuemax="100"></div>
+                          <% } %>
+                        <% }) %>
+                    </div>
+                <% } else { %>
+                    <!-- Tampilkan perubahan dalam rentang yang sama (seperti sebelumnya) -->
+                    <div class="row g-3">
+                        <% const items = [
+                            { key: 'view', label: 'View' },
+                            { key: 'like', label: 'Like' },
+                            { key: 'comment', label: 'Comment' },
+                            { key: 'share', label: 'Share' },
+                            { key: 'save', label: 'Save' }
+                        ]; %>
+                        <% items.forEach(it => { 
+                             const show = Array.isArray(insights) ? insights.includes(it.key) : true; 
+                             const t = metricChange && metricChange[it.key];
+                        %>
+                          <% if (show && t) { %>
+                            <div class="col-sm-6 col-lg-4">
+                              <div class="border rounded p-2 h-100">
+                                <div class="d-flex justify-content-between align-items-center">
+                                  <div class="fw-semibold"><%= it.label %></div>
+                                  <% const isUp = t.diff !== null ? t.diff >= 0 : null; %>
+                                  <span class="badge rounded-pill <%= isUp ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle' %>">
+                                    <%= (isUp ? '+' : '') + (t.diff !== null ? t.diff.toLocaleString() : '0') %>
+                                  </span>
+                                </div>
+                                <div class="small text-muted">Akhir: <strong><%= (t.current !== null ? t.current.toLocaleString() : '0') %></strong> • Awal: <strong><%= (t.comparison !== null ? t.comparison.toLocaleString() : '0') %></strong></div>
+                                <div class="progress mt-2" style="height: 6px;">
+                                  <% const pctAbs2 = Math.min(Math.abs((t.pct !== null ? t.pct : 0)), 100); %>
+                                  <div class="progress-bar <%= isUp ? 'bg-success' : 'bg-danger' %> js-metric-progress" data-pct="<%= pctAbs2 %>" style="width:0%" role="progressbar" aria-valuenow="<%= pctAbs2 %>" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <div class="d-flex justify-content-end mt-1 small">
+                                  <span class="<%= isUp ? 'text-success' : 'text-danger' %>"><%= (t.pct !== null ? (t.pct >= 0 ? '+' : '') + t.pct.toFixed(2) + '%' : '-') %></span>
+                                </div>
+                              </div>
                             </div>
-                            <div class="d-flex justify-content-end mt-1 small">
-                              <span class="<%= isUp ? 'text-success' : 'text-danger' %>"><%= (t.pct !== null ? (t.pct >= 0 ? '+' : '') + t.pct.toFixed(2) + '%' : '-') %></span>
-                            </div>
-                          </div>
-                        </div>
-                      <% } %>
-                    <% }) %>
-                </div>
+                          <% } %>
+                        <% }) %>
+                    </div>
+                <% } %>
             </div>
         </div>
         <div class="card mt-2">

@@ -28,7 +28,7 @@
                 <th width="100"><i class="bi bi-eye-fill text-success me-2"></i>View</th>
                 <th width="100"><i class="bi bi-share-fill text-primary me-2"></i>Share</th>
                 <th width="100"><i class="bi bi-bookmark-fill text-secondary me-2"></i>Save</th>
-                <th width="150"><i class="bi bi-people-fill text-warning me-2"></i>Followers</th>
+                <th width="120"><i class="bi bi-recycle me-2"></i>Status</th>
                 <th width="150">Tanggal Post</th>
                 <th width="180">Terakhir Update</th>
                 <th>Aksi</th>
@@ -64,7 +64,17 @@
                         <td><%= report.view_count !== null ? Number(report.view_count).toLocaleString() : '-' %></td>
                         <td><%= report.share_count !== null ? Number(report.share_count).toLocaleString() : '-' %></td>
                         <td><%= report.save_count !== null ? Number(report.save_count).toLocaleString() : '-' %></td>
-                        <td><%= report.follower_count !== null ? Number(report.follower_count).toLocaleString() : '-' %></td>
+                        <td>
+                            <% if (report.status === 'valid') { %>
+                                <span class="badge bg-success px-3 py-2">
+                                    <i class="bi bi-check-circle-fill me-1"></i>Valid
+                                </span>
+                            <% } else { %>
+                                <span class="badge bg-warning text-dark px-3 py-2">
+                                    <i class="bi bi-clock-fill me-1"></i>Running
+                                </span>
+                            <% } %>
+                        </td>
                         <td><%= formatDate(report.post_date) %></td>
                         <td>
                             <% if (report.updated_at) { %>

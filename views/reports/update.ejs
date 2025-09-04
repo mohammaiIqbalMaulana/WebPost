@@ -5,7 +5,7 @@
 <div class="alert alert-info alert-dismissible fade show">
     <i class="bi bi-clock me-2"></i>
     <strong>Informasi:</strong> 
-    Kolom Like, Komentar, View, Share, Save, dan Followers dapat diisi dengan angka (termasuk 0) atau dibiarkan kosong. 
+    Kolom Like, Komentar, View, Share, dan Save dapat diisi dengan angka (termasuk 0) atau dibiarkan kosong. 
     Data yang sudah diisi akan tersimpan sementara saat pindah halaman.
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
@@ -14,6 +14,9 @@
     <a href="/reports" class="btn btn-secondary" onclick="clearDraftOnExit()">
         <i class="bi bi-arrow-left me-1"></i>
     </a>
+    <button type="button" class="btn btn-outline-primary" onclick="openFollowerModal()">
+        <i class="bi bi-people-fill me-1"></i> Update Follower
+    </button>
 </div>
 
 <form method="POST" action="/reports/update" onsubmit="return validateForm()" id="updateForm">
@@ -44,10 +47,7 @@
                         <i class="bi bi-bookmark-fill text-secondary me-1"></i>
                         Save
                     </th>
-                    <th width="10">
-                        <i class="bi bi-people-fill text-warning me-1"></i>
-                        Followers
-                    </th>
+                    <!-- Kolom followers dihapus, update follower dilakukan terpisah -->
                 </tr>
             </thead>
             <tbody>
@@ -119,16 +119,7 @@
                                        data-field="save"
                                        title="Masukkan jumlah save terbaru">
                             </td>
-                            <td>
-                                <input type="number" 
-                                       name="follower_count[]" 
-                                       class="form-control form-control-sm text-center"
-                                       min="0"
-                                       required
-                                       value="<%= report.follower_count || 0 %>"
-                                       data-field="follower"
-                                       title="Masukkan jumlah follower terbaru">
-                            </td>
+                            <!-- Kolom followers dihapus per requirement -->
                         </tr>
                     <% }) %>
                 <% } else { %>
@@ -160,22 +151,78 @@
 
 <script>
 
+function openFollowerModal() {
+    const html = `
+        <div class="text-start">
+            <div class="mb-3">
+                <label class="form-label">Platform</label>
+                <select id="f_platform" class="form-select">
+                    <option value="tiktok">TikTok</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Follower</label>
+                <input type="number" id="f_count" class="form-control" min="0" placeholder="Masukkan jumlah follower">
+            </div>
+        </div>`;
+    Swal.fire({
+        title: 'Update Follower',
+        html,
+        showCancelButton: true,
+        confirmButtonText: 'Simpan',
+        cancelButtonText: 'Batal',
+        preConfirm: () => {
+            const platform = document.getElementById('f_platform').value;
+            const count = document.getElementById('f_count').value;
+            if (count === '' || Number(count) < 0) {
+                Swal.showValidationMessage('Follower harus angka >= 0');
+                return false;
+            }
+            return { platform, count: Number(count) };
+        }
+    }).then((res) => {
+        if (res.isConfirmed) {
+            fetch('/reports/update-follower', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ platform: res.value.platform, follower_count: res.value.count })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil',
+                        text: 'Data follower tersimpan',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: data.message || 'Gagal menyimpan follower' });
+                }
+            })
+            .catch(() => {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan jaringan' });
+            });
+        }
+    });
+}
+
 function validateForm() {
     const inputs = document.querySelectorAll('input[type="number"]');
     let validReports = 0;
     let totalReports = 0;
     
     const reportInputs = document.querySelectorAll('input[type="number"]');
-    const totalReportsCount = reportInputs.length / 6;
+    const totalReportsCount = reportInputs.length / 5;
     
     for (let i = 0; i < totalReportsCount; i++) {
         const reportFields = {
-            like: reportInputs[i * 6],
-            comment: reportInputs[i * 6 + 1],
-            view: reportInputs[i * 6 + 2],
-            share: reportInputs[i * 6 + 3],
-            save: reportInputs[i * 6 + 4],
-            follower: reportInputs[i * 6 + 5]
+            like: reportInputs[i * 5],
+            comment: reportInputs[i * 5 + 1],
+            view: reportInputs[i * 5 + 2],
+            share: reportInputs[i * 5 + 3],
+            save: reportInputs[i * 5 + 4]
         };
         
         const allFieldsFilled = Object.values(reportFields).every(field => 

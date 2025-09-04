@@ -15,6 +15,13 @@
                 <input type="date" name="end_date" class="form-control" required>
             </div>
             <div class="col-md-3">
+                <label class="form-label">Perbandingan Bulan</label>
+                <div class="form-check form-switch mt-1">
+                    <input class="form-check-input" type="checkbox" role="switch" id="compareSwitch">
+                    <label class="form-check-label" for="compareSwitch">Aktifkan</label>
+                </div>
+            </div>
+            <div class="col-md-3">
                 <label class="form-label">Format</label>
                 <select name="format" class="form-select">
                     <option value="pdf">PDF</option>
@@ -28,6 +35,30 @@
                         Sertakan Konten
                     </label>
                 </div>
+            </div>
+            <div class="col-12" id="compareControls" style="display:none;">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Bulan Akhir</label>
+                        <input type="month" id="end_month" class="form-control">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Durasi</label>
+                        <select id="num_months" class="form-select">
+                            <option value="1">1 Bulan</option>
+                            <option value="3" selected>3 Bulan</option>
+                            <option value="6">6 Bulan</option>
+                            <option value="12">1 Tahun</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Bulan yang Dibandingkan</label>
+                        <div id="monthPreview" class="d-flex flex-wrap gap-2"></div>
+                    </div>
+                </div>
+                <input type="hidden" name="compare" id="compare" value="0">
+                <input type="hidden" name="end_month" id="end_month_hidden" value="">
+                <input type="hidden" name="months" id="months_hidden" value="3">
             </div>
             <div class="col-12 d-flex gap-2">
                 <a href="/reports/analytics" class="btn btn-secondary">
@@ -78,6 +109,7 @@
                             <input class="form-check-input insight-check" type="checkbox" value="er" id="insight_er" checked>
                             <label class="form-check-label" for="insight_er">ER</label>
                         </div>
+                        <!-- Follower tidak dipilih per posting, ditampilkan sebagai ringkasan terpisah dari tabel followers -->
                     </div>
                 </div>
             </div>
@@ -95,6 +127,139 @@
         const btnConfirm = document.getElementById('btnConfirmInsights');
         const hiddenInput = document.getElementById('selected_insights');
         const form = document.querySelector('form[action="/reports/print/export"]');
+        const compareSwitch = document.getElementById('compareSwitch');
+        const compareControls = document.getElementById('compareControls');
+        const endMonthInput = document.getElementById('end_month');
+        const numMonthsSelect = document.getElementById('num_months');
+        const monthPreview = document.getElementById('monthPreview');
+        const compareHidden = document.getElementById('compare');
+        const endMonthHidden = document.getElementById('end_month_hidden');
+        const monthsHidden = document.getElementById('months_hidden');
+
+        function formatLabel(y, m){
+            const names = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+            return names[m-1] + ' ' + y;
+        }
+
+        function buildPreview(){
+            console.log('=== BUILD PREVIEW ===');
+            monthPreview.innerHTML = '';
+            const endVal = endMonthInput.value; // YYYY-MM
+            const n = parseInt(numMonthsSelect.value || '3');
+            console.log('Building preview with endVal:', endVal, 'n:', n);
+
+            if(!endVal) {
+                console.log('No endVal, returning');
+                return;
+            }
+
+            const [ey, em] = endVal.split('-').map(Number);
+            console.log('Parsed end year:', ey, 'end month:', em);
+
+            const months = [];
+
+            // Generate months from oldest to newest (same as backend)
+            let y = ey, m = em;
+
+            // Go back n months to find the starting month
+            for(let i = 0; i < n; i++){
+                m -= 1;
+                if(m === 0){ m = 12; y -= 1; }
+            }
+
+            // Now add months from oldest to newest
+            for(let i = 0; i <= n; i++){
+                months.push({ y, m });
+                console.log(`Added month ${i}:`, { y, m });
+
+                // Move to next month
+                m += 1;
+                if(m === 13){ m = 1; y += 1; }
+            }
+
+            console.log('Final months array (oldest to newest):', months);
+
+            months.forEach(({y,m})=>{
+                const badge = document.createElement('span');
+                badge.className = 'badge text-bg-light border';
+                badge.textContent = formatLabel(y,m);
+                monthPreview.appendChild(badge);
+            });
+
+            console.log('Preview built successfully');
+        }
+
+        compareSwitch.addEventListener('change', function(){
+            const on = compareSwitch.checked;
+            compareControls.style.display = on ? '' : 'none';
+            compareHidden.value = on ? '1' : '0';
+        });
+
+        endMonthInput.addEventListener('change', buildPreview);
+        numMonthsSelect.addEventListener('change', buildPreview);
+
+        // default end month = current month (only if not already set)
+        if (!endMonthInput.value) {
+            const now = new Date();
+            const ym = now.toISOString().slice(0,7);
+            console.log('Setting default end_month to:', ym);
+            endMonthInput.value = ym;
+            buildPreview();
+        } else {
+            console.log('end_month already has value:', endMonthInput.value);
+            buildPreview();
+        }
+
+        // Auto-update end_month when end_date changes
+        const endDateInput = document.querySelector('input[name="end_date"]');
+        if (endDateInput) {
+            console.log('Setting up end_date change listener');
+            endDateInput.addEventListener('change', function() {
+                console.log('=== FRONTEND DEBUG ===');
+                console.log('End date changed:', this.value);
+                console.log('Current end_month value before change:', endMonthInput.value);
+                if (this.value) {
+                    try {
+                        // Extract year-month from the selected end date
+                        const dateValue = this.value;
+                        console.log('Raw date value:', dateValue);
+
+                        // Parse date more robustly
+                        let endDate;
+                        if (dateValue.includes('T')) {
+                            endDate = new Date(dateValue);
+                        } else {
+                            endDate = new Date(dateValue + 'T00:00:00');
+                        }
+
+                        console.log('Parsed date object:', endDate);
+                        console.log('Parsed date ISO string:', endDate.toISOString());
+
+                        // Extract year and month manually to avoid timezone issues
+                        const year = endDate.getFullYear();
+                        const month = endDate.getMonth() + 1; // getMonth() returns 0-11
+                        const yearMonth = `${year}-${String(month).padStart(2, '0')}`;
+
+                        console.log('Extracted year:', year, 'month:', month);
+                        console.log('Final yearMonth:', yearMonth);
+                        console.log('Setting end_month to:', yearMonth);
+
+                        endMonthInput.value = yearMonth;
+                        console.log('end_month value after setting:', endMonthInput.value);
+
+                        // Force update the preview
+                        setTimeout(() => {
+                            buildPreview();
+                            console.log('Preview updated');
+                        }, 10);
+                    } catch (error) {
+                        console.error('Error parsing date:', error);
+                    }
+                }
+            });
+        } else {
+            console.log('ERROR: end_date input not found!');
+        }
 
         if (btnOpen) {
             btnOpen.addEventListener('click', function(){
@@ -108,6 +273,31 @@
                 const checks = Array.from(document.querySelectorAll('.insight-check'));
                 const selected = checks.filter(c => c.checked).map(c => c.value);
                 hiddenInput.value = selected.length ? selected.join(',') : 'view,like,comment,share,save,er';
+
+                // Final sync of compare params - ensure end_month is correct
+                const endDateValue = document.querySelector('input[name="end_date"]').value;
+                if (endDateValue) {
+                    try {
+                        const endDate = new Date(endDateValue + 'T00:00:00');
+                        const year = endDate.getFullYear();
+                        const month = endDate.getMonth() + 1;
+                        const correctYearMonth = `${year}-${String(month).padStart(2, '0')}`;
+                        endMonthInput.value = correctYearMonth;
+                        console.log('Final end_month correction:', correctYearMonth);
+                    } catch (error) {
+                        console.error('Error in final end_month correction:', error);
+                    }
+                }
+
+                endMonthHidden.value = endMonthInput.value;
+                monthsHidden.value = numMonthsSelect.value;
+
+                console.log('=== FINAL FORM SUBMISSION ===');
+                console.log('end_date:', endDateValue);
+                console.log('end_month (visible):', endMonthInput.value);
+                console.log('end_month_hidden:', endMonthHidden.value);
+                console.log('months_hidden:', monthsHidden.value);
+
                 const modalEl = document.getElementById('insightModal');
                 const modalInst = bootstrap.Modal.getInstance(modalEl);
                 if (modalInst) modalInst.hide();

@@ -29,38 +29,6 @@
                     </label>
                 </div>
             </div>
-            
-            <!-- Opsi Perbandingan Bulan -->
-            <div class="col-12">
-                <div class="card border-primary">
-                    <div class="card-header bg-primary text-white">
-                        <i class="bi bi-graph-up me-2"></i>
-                        <strong>Opsi Perbandingan Statistik</strong>
-                    </div>
-                    <div class="card-body">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Bulan Perbandingan</label>
-                                <select name="comparison_month" class="form-select" id="comparisonMonth">
-                                    <option value="">Pilih bulan untuk perbandingan</option>
-                                    <option value="custom">Bulan Kustom</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6" id="customMonthDiv" style="display: none;">
-                                <label class="form-label">Tanggal Bulan Kustom</label>
-                                <input type="date" name="custom_comparison_date" class="form-control" id="customComparisonDate">
-                            </div>
-                        </div>
-                        <div class="mt-2">
-                            <small class="text-muted">
-                                <i class="bi bi-info-circle me-1"></i>
-                                Statistik follower, view, like, save, share, dan comment akan dibandingkan dengan bulan yang dipilih
-                            </small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
             <div class="col-12 d-flex gap-2">
                 <a href="/reports/analytics" class="btn btn-secondary">
                     <i class="bi bi-arrow-left"></i>
@@ -127,22 +95,6 @@
         const btnConfirm = document.getElementById('btnConfirmInsights');
         const hiddenInput = document.getElementById('selected_insights');
         const form = document.querySelector('form[action="/reports/print/export"]');
-        const comparisonMonth = document.getElementById('comparisonMonth');
-        const customMonthDiv = document.getElementById('customMonthDiv');
-        const customComparisonDate = document.getElementById('customComparisonDate');
-
-        // Handle comparison month selection
-        if (comparisonMonth) {
-            comparisonMonth.addEventListener('change', function() {
-                if (this.value === 'custom') {
-                    customMonthDiv.style.display = 'block';
-                    customComparisonDate.required = true;
-                } else {
-                    customMonthDiv.style.display = 'none';
-                    customComparisonDate.required = false;
-                }
-            });
-        }
 
         if (btnOpen) {
             btnOpen.addEventListener('click', function(){

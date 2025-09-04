@@ -453,7 +453,7 @@ router.get('/print', async (req, res) => {
 // 📌 CETAK REPORT - Hasil
 router.get('/print/export', async (req, res) => {
   try {
-    const { start_date, end_date, include_thumbnails, format, selected_insights, comparison_month, custom_comparison_date } = req.query;
+    const { start_date, end_date, include_thumbnails, format, selected_insights } = req.query;
 
     if (!start_date || !end_date) {
       return res.status(400).send('Tanggal mulai dan akhir wajib diisi');
@@ -470,32 +470,6 @@ router.get('/print/export', async (req, res) => {
       .filter(Boolean);
     const insights = selectedInsights.length ? selectedInsights : defaultInsights;
 
-    // Tentukan tanggal perbandingan
-    let comparisonStartDate, comparisonEndDate;
-    if (comparison_month === 'previous') {
-      
-      if (monthDiff >= 1) {
-        comparisonStartDate = new Date(startDate);
-        comparisonStartDate.setMonth(comparisonStartDate.getMonth() - 1);
-        comparisonEndDate = new Date(startDate);
-        comparisonEndDate.setDate(comparisonEndDate.getDate() - 1);
-      }
-    } else if (comparison_month === 'custom' && custom_comparison_date) {
-      // Bulan kustom yang dipilih user
-      const customDate = new Date(custom_comparison_date);
-      const startDate = new Date(start_date);
-      const monthDiff = (startDate.getFullYear() - customDate.getFullYear()) * 12 + (startDate.getMonth() - customDate.getMonth());
-      
-      if (monthDiff >= 1) {
-        comparisonStartDate = new Date(customDate);
-        comparisonStartDate.setMonth(comparisonStartDate.getMonth());
-        comparisonEndDate = new Date(customDate);
-        comparisonEndDate.setMonth(comparisonEndDate.getMonth() + 1);
-        comparisonEndDate.setDate(comparisonEndDate.getDate() - 1);
-      }
-    }
-
-    // Get reports untuk periode yang dipilih
     const [reports] = await db.query(`
       SELECT id, judul, post_url, post_date, like_count, comment_count, view_count, share_count, save_count, follower_count, image_path
       FROM reports
@@ -503,18 +477,7 @@ router.get('/print/export', async (req, res) => {
       ORDER BY post_date DESC, created_at DESC
     `, [start_date, end_date]);
 
-    // Get reports untuk periode perbandingan jika ada
-    let comparisonReports = [];
-    if (comparisonStartDate && comparisonEndDate) {
-      [comparisonReports] = await db.query(`
-        SELECT id, judul, post_url, post_date, like_count, comment_count, view_count, share_count, save_count, follower_count, image_path
-        FROM reports
-        WHERE post_date BETWEEN ? AND ?
-        ORDER BY post_date DESC, created_at DESC
-      `, [comparisonStartDate.toISOString().split('T')[0], comparisonEndDate.toISOString().split('T')[0]]);
-    }
-
-    // Aggregate totals for insights (periode yang dipilih)
+    // Aggregate totals for insights
     const totals = reports.reduce((acc, r) => {
       acc.view += Number(r.view_count || 0);
       acc.like += Number(r.like_count || 0);
@@ -524,65 +487,53 @@ router.get('/print/export', async (req, res) => {
       return acc;
     }, { view: 0, like: 0, comment: 0, share: 0, save: 0 });
 
-    // Aggregate totals untuk periode perbandingan
-    const comparisonTotals = comparisonReports.reduce((acc, r) => {
-      acc.view += Number(r.view_count || 0);
-      acc.like += Number(r.like_count || 0);
-      acc.comment += Number(r.comment_count || 0);
-      acc.share += Number(r.share_count || 0);
-      acc.save += Number(r.save_count || 0);
-      return acc;
-    }, { view: 0, like: 0, comment: 0, share: 0, save: 0 });
+    // Perubahan insight seperti follower: bandingkan nilai awal vs akhir dalam rentang
+    const sortedByDate = reports
+      .slice()
+      .filter(r => r.post_date)
+      .sort((a, b) => new Date(a.post_date) - new Date(b.post_date));
 
-    // Hitung perubahan antar periode untuk setiap metric
-    const calculateMetricChange = (current, comparison) => {
-      const currentVal = current || 0;
-      const comparisonVal = comparison || 0;
-      const diff = currentVal - comparisonVal;
-      const pct = comparisonVal > 0 ? (diff / comparisonVal) * 100 : null;
-      
-      return {
-        current: currentVal,
-        comparison: comparisonVal,
-        diff: diff,
-        pct: pct
-      };
-    };
+  const pickStartEnd = (key) => {
+    const series = sortedByDate.filter(r => r[key] !== null && r[key] !== undefined);
+    if (series.length === 0) return { start: null, end: null, diff: null, pct: null };
+    const startVal = Number(series[0][key]);
+    const endVal = Number(series[series.length - 1][key]);
+    const diff = endVal - startVal;
+    
+    let pct = null;
+    if (startVal > 0) {
+      pct = (diff / startVal) * 100;
+    } else if (startVal === 0 && endVal > 0) {
+      // Kasus khusus: dari 0 ke nilai positif = peningkatan tak terbatas
+      // Bisa ditampilkan sebagai "∞%" atau "100%" atau nilai maksimum
+      pct = 100; // atau bisa pakai 999 untuk indikasi "sangat tinggi"
+    } else if (startVal === 0 && endVal === 0) {
+      pct = 0; // tidak ada perubahan
+    }
+    
+    return { start: startVal, end: endVal, diff, pct };
+  };
 
     const metricChange = {
-      view: calculateMetricChange(totals.view, comparisonTotals.view),
-      like: calculateMetricChange(totals.like, comparisonTotals.like),
-      comment: calculateMetricChange(totals.comment, comparisonTotals.comment),
-      share: calculateMetricChange(totals.share, comparisonTotals.share),
-      save: calculateMetricChange(totals.save, comparisonTotals.save)
+      view: pickStartEnd('view_count'),
+      like: pickStartEnd('like_count'),
+      comment: pickStartEnd('comment_count'),
+      share: pickStartEnd('share_count'),
+      save: pickStartEnd('save_count')
     };
 
-    // Hitung perubahan follower antar periode
-    let followerChange = { current: null, comparison: null, diff: null, pct: null };
-    
-    if (comparisonReports.length > 0) {
-      // Ambil follower terakhir dari setiap periode
-      const currentFollower = reports
-        .filter(r => r.follower_count !== null && r.follower_count !== undefined)
-        .sort((a, b) => new Date(b.post_date) - new Date(a.post_date))[0];
-      
-      const comparisonFollower = comparisonReports
-        .filter(r => r.follower_count !== null && r.follower_count !== undefined)
-        .sort((a, b) => new Date(b.post_date) - new Date(a.post_date))[0];
-      
-      if (currentFollower && comparisonFollower) {
-        const currentVal = Number(currentFollower.follower_count);
-        const comparisonVal = Number(comparisonFollower.follower_count);
-        const diff = currentVal - comparisonVal;
-        const pct = comparisonVal > 0 ? (diff / comparisonVal) * 100 : null;
-        
-        followerChange = {
-          current: currentVal,
-          comparison: comparisonVal,
-          diff: diff,
-          pct: pct
-        };
-      }
+    // Calculate follower change (earliest vs latest by post_date with non-null follower_count)
+    let followerChange = { start: null, end: null, diff: null, pct: null };
+    const followerSeries = reports
+      .filter(r => r.follower_count !== null && r.follower_count !== undefined)
+      .slice()
+      .sort((a, b) => new Date(a.post_date) - new Date(b.post_date));
+    if (followerSeries.length >= 1) {
+      const startFollower = Number(followerSeries[0].follower_count);
+      const endFollower = Number(followerSeries[followerSeries.length - 1].follower_count);
+      const diff = endFollower - startFollower;
+      const pct = startFollower > 0 ? (diff / startFollower) * 100 : null;
+      followerChange = { start: startFollower, end: endFollower, diff, pct };
     }
 
     // Hitung rata-rata ER per posting menggunakan formula aktif
@@ -634,11 +585,7 @@ router.get('/print/export', async (req, res) => {
       followerChange,
       metricChange,
       averageER,
-      totalPostingan,
-      comparisonStartDate: comparisonStartDate ? comparisonStartDate.toISOString().split('T')[0] : null,
-      comparisonEndDate: comparisonEndDate ? comparisonEndDate.toISOString().split('T')[0] : null,
-      comparison_month,
-      comparisonTotals
+      totalPostingan
     });
   } catch (err) {
     console.error('Error GET /print/export:', err);

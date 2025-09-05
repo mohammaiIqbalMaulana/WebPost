@@ -1423,12 +1423,7 @@ router.post('/update-target', async (req, res) => {
       [targetValue, targetAchievedDate, report_id]
     );
 
-    return res.json({
-      success: true,
-      message: `Target ${targetValue}% berhasil disimpan`,
-      target: targetValue,
-      target_achieved_date: targetAchievedDate
-    });
+    return res.redirect(`/reports/analytics?target_saved=1&target=${encodeURIComponent(targetValue)}`);
   } catch (err) {
     console.error("Error updating target:", err);
     return res.redirect('/reports/analytics?target_saved=0&msg=Gagal%20menyimpan%20target');

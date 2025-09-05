@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <title><%= title %></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
+            <style>
         @media print {
             .no-print { display: none !important; }
             a[href]:after { content: "" !important; }
@@ -44,6 +44,10 @@
         }
         .progress {
             height: 6px;
+            background-color: #e9ecef;
+        }
+        .progress-bar {
+            transition: width 0.8s ease-in-out;
         }
         .card-header {
             font-weight: 600;
@@ -69,6 +73,47 @@
             background: linear-gradient(135deg, #fffdf5 0%, #fff3cd 100%);
         }
     </style>
+    <script>
+        window.addEventListener('load', () => {
+            // Fungsi untuk mengatur bar progress
+            const setProgressBar = (progressBar, percentage, actualChange) => {
+                if (!progressBar) return;
+                
+                // Reset classes
+                progressBar.classList.remove('bg-success', 'bg-danger', 'bg-warning');
+                
+                if (actualChange === 0) {
+                    // Jika tidak ada perubahan (0)
+                    progressBar.style.width = '100%';
+                    progressBar.classList.add('bg-warning');
+                } else if (actualChange < 0) {
+                    // Jika negatif (penurunan)
+                    progressBar.style.width = '100%';
+                    progressBar.classList.add('bg-danger');
+                } else {
+                    // Jika positif (kenaikan)
+                    progressBar.style.width = percentage + '%';
+                    progressBar.classList.add('bg-success');
+                }
+            };
+
+            // Animasi untuk progress bar followers
+            const followerBars = document.querySelectorAll('.progress-bar[data-follower-progress]');
+            followerBars.forEach(bar => {
+                const progress = parseFloat(bar.getAttribute('data-follower-progress'));
+                const change = parseFloat(bar.getAttribute('data-change') || '0');
+                setTimeout(() => setProgressBar(bar, Math.abs(progress), change), 100);
+            });
+
+            // Animasi untuk progress bar insight metrics
+            const metricBars = document.querySelectorAll('.progress-bar[data-metric-progress]');
+            metricBars.forEach(bar => {
+                const progress = parseFloat(bar.getAttribute('data-metric-progress'));
+                const change = parseFloat(bar.getAttribute('data-change') || '0');
+                setTimeout(() => setProgressBar(bar, Math.abs(progress), change), 100);
+            });
+        });
+    </script>
 </head>
 <body class="p-4">
     
@@ -515,20 +560,16 @@
 
                           <% const progressWidth = Math.min(Math.abs(pct || 0), 100); %>
                           <div class="progress mb-3" style="height: 12px;">
-                            <div class="progress-bar <%= trendUp ? 'bg-success' : 'bg-danger' %>" 
+                            <div class="progress-bar" 
                                  role="progressbar" 
-                                 data-width="<%= progressWidth %>"
-                                 style="width: 0"
+                                 data-follower-progress="<%= progressWidth %>"
+                                 data-change="<%= diff %>"
+                                 style="width: 0%"
                                  aria-valuenow="<%= Math.abs(pct || 0) %>" 
                                  aria-valuemin="0" 
                                  aria-valuemax="100">
                             </div>
                           </div>
-                          <script>
-                            document.querySelectorAll('.progress-bar[data-width]').forEach(bar => {
-                              bar.style.width = bar.dataset.width + '%';
-                            });
-                          </script>
 
                           <div class="row text-center">
                             <div class="col-6">
@@ -597,8 +638,8 @@
                                             <%= it.icon %> <%= it.label %>
                                           </div>
                                           <% const isUp = t.diff !== null ? t.diff >= 0 : null; %>
-                                          <span class="badge <%= isUp ? 'bg-success' : 'bg-danger' %> rounded-pill">
-                                            <%= (isUp ? '+' : '') + (t.diff !== null ? t.diff.toLocaleString() : '0') %>
+                                          <span class="badge <%= t.diff === 0 ? 'bg-warning' : (isUp ? 'bg-success' : 'bg-danger') %> rounded-pill">
+                                            <%= t.diff === 0 ? '0' : ((isUp ? '+' : '') + t.diff.toLocaleString()) %>
                                           </span>
                                         </div>
                                         
@@ -608,21 +649,32 @@
                                         </div>
                                         
                                         <div class="progress mb-2" style="height: 8px;">
-                                          <% const pctAbs = Math.min(Math.abs((t.pct !== null ? t.pct : 0)), 100); %>
-                                          <div class="progress-bar <%= isUp ? 'bg-success' : 'bg-danger' %>" 
+                                          <% 
+                                            // Menghitung persentase untuk progress bar
+                                            const barValue = t.diff !== null ? t.diff : 0;
+                                            const maxValue = Math.max(Math.abs(t.start || 0), Math.abs(t.end || 0));
+                                            let progressPct = maxValue > 0 ? (Math.abs(barValue) / maxValue) * 100 : 0;
+                                            progressPct = Math.min(progressPct, 100);
+                                          %>
+                                          <div class="progress-bar" 
                                                role="progressbar" 
-                                               data-width="<%= pctAbs %>"
-                                               style="width: 0"
-                                               aria-valuenow="<%= pctAbs %>" 
+                                               data-metric-progress="<%= progressPct %>"
+                                               data-change="<%= barValue %>"
+                                               style="width: 0%"
+                                               aria-valuenow="<%= progressPct %>" 
                                                aria-valuemin="0" 
                                                aria-valuemax="100">
                                           </div>
                                         </div>
                                         
                                         <div class="text-end">
-                                          <span class="badge text-bg-light border <%= isUp ? 'text-success' : 'text-danger' %>">
-                                            <%= (t.pct !== null ? (t.pct >= 0 ? '+' : '') + t.pct.toFixed(2) + '%' : '-') %>
-                                          </span>
+                                          <% if (t.diff === 0) { %>
+                                            <span class="badge bg-warning">Tidak ada perubahan</span>
+                                          <% } else { %>
+                                            <span class="badge text-bg-light border <%= isUp ? 'text-success' : 'text-danger' %>">
+                                              <%= (t.pct !== null ? (t.pct >= 0 ? '+' : '') + t.pct.toFixed(2) + '%' : '-') %>
+                                            </span>
+                                          <% } %>
                                         </div>
                                       </div>
                                     </div>

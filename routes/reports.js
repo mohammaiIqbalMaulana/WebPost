@@ -671,7 +671,6 @@ router.get('/print', async (req, res) => {
 });
 
 // 📌 CETAK REPORT - Hasil dengan follower dari tabel terpisah
-// 📌 CETAK REPORT - Hasil dengan follower dari tabel terpisah (FIXED VERSION)
 router.get('/print/export', async (req, res) => {
   try {
     const { start_date, end_date, include_thumbnails, format, selected_insights, compare, end_month, months } = req.query;

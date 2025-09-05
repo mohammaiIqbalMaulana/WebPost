@@ -125,7 +125,7 @@
                                         </div>
                                     <% } else { %>
                                         <!-- Target belum ada, tampilkan form input -->
-                                        <form method="POST" action="/reports/update-target" class="d-flex align-items-center justify-content-center gap-2">
+                                        <form id="target-form-<%= report.id %>" class="d-flex align-items-center justify-content-center gap-2" onsubmit="submitTarget(event, '<%= report.id %>')">
                                             <input type="hidden" name="report_id" value="<%= report.id %>">
                                             <input type="number" 
                                                    name="target_engagement"
@@ -348,6 +348,57 @@
                                 });
                             });
                     }
+                });
+            }
+            // Function to submit target via AJAX
+            function submitTarget(event, reportId) {
+                event.preventDefault();
+                const form = document.getElementById(`target-form-${reportId}`);
+                const formData = new FormData(form);
+                const data = {};
+                formData.forEach((value, key) => {
+                    data[key] = value;
+                });
+
+                fetch('/reports/update-target', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        Swal.fire({
+                            title: 'Tersimpan!',
+                            text: result.message,
+                            icon: 'success',
+                            timer: 2000,
+                            showConfirmButton: false,
+                            toast: true,
+                            position: 'top-end'
+                        }).then(() => {
+                            // Reload halaman untuk refresh data dan tetap di halaman /analytics
+                            window.location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Gagal!',
+                            text: result.message || 'Gagal menyimpan target',
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'Terjadi kesalahan saat menyimpan target',
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
                 });
             }
         </script>

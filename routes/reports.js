@@ -906,56 +906,91 @@ router.get('/print/export', async (req, res) => {
 
       // Calculate follower change
       const validFollowers = monthlyData.filter(m => m.followerCount !== null);
-      if (validFollowers.length >= 2) {
-        const firstFollower = validFollowers[0].followerCount;
-        const lastFollower = validFollowers[validFollowers.length - 1].followerCount;
-        const diff = lastFollower - firstFollower;
-        const pct = firstFollower > 0 ? (diff / firstFollower) * 100 : null;
-        followerChange = { start: firstFollower, end: lastFollower, diff, pct };
-      } else if (validFollowers.length === 1) {
-        const singleFollower = validFollowers[0].followerCount;
-        followerChange = { start: singleFollower, end: singleFollower, diff: 0, pct: 0 };
-      }
-
-      // Calculate metric changes
-      const pickStartEnd = (key) => {
-        const values = monthlyData.map(m => m.totals[key]).filter(v => v !== null && v !== undefined);
-        if (values.length < 2) return { start: null, end: null, diff: null, pct: null };
-        const startVal = Number(values[0]);
-        const endVal = Number(values[values.length - 1]);
-        const diff = endVal - startVal;
-
-        let pct = null;
-        if (startVal > 0) {
-          pct = (diff / startVal) * 100;
-        } else if (startVal === 0 && endVal > 0) {
-          pct = 100;
-        } else if (startVal === 0 && endVal === 0) {
-          pct = 0;
+        
+        if (validFollowers.length >= 1) {
+          // Ambil bulan terakhir sebagai referensi
+          const referenceMonth = validFollowers[validFollowers.length - 1];
+          const referenceFollower = referenceMonth.followerCount;
+          
+          // Hitung rata-rata follower dari bulan-bulan sebelumnya
+          const otherMonths = validFollowers.slice(0, -1);
+          const avgOtherFollower = otherMonths.length > 0 
+            ? otherMonths.reduce((sum, m) => sum + m.followerCount, 0) / otherMonths.length 
+            : referenceFollower;
+          
+          const diff = referenceFollower - avgOtherFollower;
+          const pct = avgOtherFollower > 0 ? (diff / avgOtherFollower) * 100 : 0;
+          
+          followerChange = { 
+            start: Math.round(avgOtherFollower), 
+            end: referenceFollower, 
+            diff: Math.round(diff), 
+            pct 
+          };
         }
 
-        return { start: startVal, end: endVal, diff, pct };
-      };
+      // Calculate metric changes
+      const calculateReferenceComparison = (key) => {
+          const monthsWithData = monthlyData.filter(m => m.hasPosts && m.totals[key] !== null);
+          
+          if (monthsWithData.length === 0) {
+            return { start: null, end: null, diff: null, pct: null };
+          }
+          
+          if (monthsWithData.length === 1) {
+            // Hanya ada 1 bulan dengan data
+            const singleValue = monthsWithData[0].totals[key];
+            return { start: singleValue, end: singleValue, diff: 0, pct: 0 };
+          }
+          
+          // Ambil bulan terakhir sebagai referensi
+          const referenceMonth = monthsWithData[monthsWithData.length - 1];
+          const referenceValue = referenceMonth.totals[key];
+          
+          // Hitung rata-rata dari bulan-bulan sebelumnya
+          const otherMonths = monthsWithData.slice(0, -1);
+          const avgOtherValue = otherMonths.reduce((sum, m) => sum + m.totals[key], 0) / otherMonths.length;
+          
+          const diff = referenceValue - avgOtherValue;
+          
+          let pct = null;
+          if (avgOtherValue > 0) {
+            pct = (diff / avgOtherValue) * 100;
+          } else if (avgOtherValue === 0 && referenceValue > 0) {
+            pct = 100;
+          } else if (avgOtherValue === 0 && referenceValue === 0) {
+            pct = 0;
+          }
 
-      metricChange = {
-        view: pickStartEnd('view'),
-        like: pickStartEnd('like'),
-        comment: pickStartEnd('comment'),
-        share: pickStartEnd('share'),
-        save: pickStartEnd('save')
-      };
+          return { 
+            start: Math.round(avgOtherValue), 
+            end: referenceValue, 
+            diff: Math.round(diff), 
+            pct 
+          };
+        };
+
+        metricChange = {
+          view: calculateReferenceComparison('view'),
+          like: calculateReferenceComparison('like'),
+          comment: calculateReferenceComparison('comment'),
+          share: calculateReferenceComparison('share'),
+          save: calculateReferenceComparison('save')
+        };
 
       // Calculate overall average ER
       const validERs = monthlyData.filter(m => m.hasPosts).map(m => m.averageER);
-      averageER = validERs.length > 0 ? (validERs.reduce((sum, er) => sum + er, 0) / validERs.length) : 0;
+        averageER = validERs.length > 0 ? (validERs.reduce((sum, er) => sum + er, 0) / validERs.length) : 0;
 
       // Populate reports array for Excel export
       reports = allReports;
 
-      console.log('📈 Final Comparison Results:');
+      console.log('📈 FIXED Comparison Results:');
+      console.log('- Reference month:', monthlyData[monthlyData.length - 1]?.monthName);
       console.log('- Total posts:', totalPostingan);
       console.log('- Average ER:', averageER);
-      console.log('- Follower change:', followerChange);
+      console.log('- Follower change (ref vs avg others):', followerChange);
+      console.log('- Metric changes:', metricChange);
 
     } else {
       // MODE NORMAL - FIXED: Validate required fields

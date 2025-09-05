@@ -531,76 +531,107 @@
                     <div class="card-header bg-info text-white">
                         <h6 class="mb-0">
                             <i class="bi bi-people me-2"></i>
-                            Perubahan Follower
+                            <% if (isCompare) { %>
+                                Perbandingan Follower
+                            <% } else { %>
+                                Perubahan Follower
+                            <% } %>
                         </h6>
                     </div>
                     <div class="card-body">
                         <%
-                          const hasFollower = followerChange && followerChange.start !== null && followerChange.end !== null;
-                          const diff = hasFollower ? followerChange.diff : 0;
-                          const pct = hasFollower ? followerChange.pct : null;
-                          const trendUp = hasFollower ? diff >= 0 : null;
-                          const trendClass = trendUp ? 'text-success' : 'text-danger';
-                          const badgeClass = trendUp ? 'bg-success' : 'bg-danger';
+                        const hasFollower = followerChange && followerChange.start !== null && followerChange.end !== null;
+                        const diff = hasFollower ? followerChange.diff : 0;
+                        const pct = hasFollower ? followerChange.pct : null;
+                        const trendUp = hasFollower ? diff >= 0 : null;
+                        const trendClass = trendUp ? 'text-success' : 'text-danger';
+                        const badgeClass = trendUp ? 'bg-success' : 'bg-danger';
                         %>
 
                         <% if (hasFollower) { %>
-                          <div class="text-center mb-3">
+                        <div class="text-center mb-3">
                             <div class="display-5 fw-bold <%= trendClass %>">
-                              <%= followerChange.end.toLocaleString() %>
+                            <%= followerChange.end.toLocaleString() %>
                             </div>
-                            <div class="small text-muted mb-2">Follower Akhir</div>
+                            <div class="small text-muted mb-2">
+                            <% if (isCompare) { %>
+                                Follower Bulan Terakhir
+                            <% } else { %>
+                                Follower Akhir
+                            <% } %>
+                            </div>
                             <span class="badge <%= badgeClass %> px-3 py-2">
-                              <%= (diff >= 0 ? '+' : '') + diff.toLocaleString() %>
-                              <% if (pct !== null) { %>
+                            <%= (diff >= 0 ? '+' : '') + diff.toLocaleString() %>
+                            <% if (pct !== null) { %>
                                 (<%= (pct >= 0 ? '+' : '') + pct.toFixed(2) %>%)
-                              <% } %>
+                            <% } %>
                             </span>
-                          </div>
+                        </div>
 
-                          <% const progressWidth = Math.min(Math.abs(pct || 0), 100); %>
-                          <div class="progress mb-3" style="height: 12px;">
+                        <% const progressWidth = Math.min(Math.abs(pct || 0), 100); %>
+                        <div class="progress mb-3" style="height: 12px;">
                             <div class="progress-bar" 
-                                 role="progressbar" 
-                                 data-follower-progress="<%= progressWidth %>"
-                                 data-change="<%= diff %>"
-                                 style="width: 0%"
-                                 aria-valuenow="<%= Math.abs(pct || 0) %>" 
-                                 aria-valuemin="0" 
-                                 aria-valuemax="100">
+                                role="progressbar" 
+                                data-follower-progress="<%= progressWidth %>"
+                                data-change="<%= diff %>"
+                                style="width: 0%"
+                                aria-valuenow="<%= Math.abs(pct || 0) %>" 
+                                aria-valuemin="0" 
+                                aria-valuemax="100">
                             </div>
-                          </div>
+                        </div>
 
-                          <div class="row text-center">
+                        <div class="row text-center">
                             <div class="col-6">
-                              <div class="border rounded p-2 bg-light">
+                            <div class="border rounded p-2 bg-light">
                                 <div class="fw-semibold"><%= followerChange.start.toLocaleString() %></div>
-                                <div class="small text-muted">Awal</div>
-                              </div>
+                                <div class="small text-muted">
+                                <% if (isCompare) { %>
+                                    Rata-rata Lainnya
+                                <% } else { %>
+                                    Awal
+                                <% } %>
+                                </div>
+                            </div>
                             </div>
                             <div class="col-6">
-                              <div class="border rounded p-2 bg-light">
+                            <div class="border rounded p-2 bg-light">
                                 <div class="fw-semibold <%= trendClass %>"><%= followerChange.end.toLocaleString() %></div>
-                                <div class="small text-muted">Akhir</div>
-                              </div>
+                                <div class="small text-muted">
+                                <% if (isCompare) { %>
+                                    Bulan Terakhir
+                                <% } else { %>
+                                    Akhir
+                                <% } %>
+                                </div>
                             </div>
-                          </div>
+                            </div>
+                        </div>
+
+                        <% if (isCompare) { %>
+                            <div class="mt-3">
+                            <div class="alert alert-light border small mb-0">
+                                <i class="bi bi-info-circle me-1"></i>
+                                <strong>Catatan:</strong> Follower bulan terakhir dibandingkan dengan rata-rata follower dari bulan-bulan sebelumnya yang memiliki data
+                            </div>
+                            </div>
+                        <% } %>
+
                         <% } else { %>
-                          <div class="text-center py-4">
+                        <div class="text-center py-4">
                             <i class="bi bi-exclamation-circle text-warning fs-1 mb-3"></i>
                             <div class="text-muted">
-                              <strong>Data Follower Tidak Tersedia</strong>
-                              <div class="small mt-1">
+                            <strong>Data Follower Tidak Tersedia</strong>
+                            <div class="small mt-1">
                                 Tidak ada data follower yang memadai<br>
                                 untuk periode ini
-                              </div>
                             </div>
-                          </div>
+                            </div>
+                        </div>
                         <% } %>
                     </div>
                 </div>
             </div>
-        </div>
 
         <!-- Metric Changes (Only show if there are changes to display) -->
         <% if (metricChange && (isCompare || Object.values(metricChange).some(m => m && m.start !== null))) { %>
@@ -611,13 +642,31 @@
                             <h6 class="mb-0">
                                 <i class="bi bi-graph-up-arrow me-2"></i>
                                 <% if (isCompare) { %>
-                                    Perbandingan Perubahan Insight Antar Bulan
+                                    Perbandingan: Bulan Terakhir vs Rata-rata Bulan Lainnya
+                                    <small class="ms-2">
+                                        (<%= monthlyData && monthlyData.length > 0 ? monthlyData[monthlyData.length - 1].monthName : 'Bulan Terakhir' %> sebagai referensi)
+                                    </small>
                                 <% } else { %>
                                     Perubahan Insight (Awal → Akhir)
                                 <% } %>
                             </h6>
                         </div>
                         <div class="card-body">
+                            <% if (isCompare) { %>
+                                <!-- Comparison Mode - Show reference explanation -->
+                                <div class="alert alert-info mb-3">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-info-circle me-2"></i>
+                                        <div class="small">
+                                            <strong>Metode Perbandingan:</strong> 
+                                            Data dari <strong><%= monthlyData && monthlyData.length > 0 ? monthlyData[monthlyData.length - 1].monthName : 'bulan terakhir' %></strong> 
+                                            dibandingkan dengan rata-rata dari 
+                                            <strong><%= monthlyData ? monthlyData.length - 1 : 0 %> bulan sebelumnya</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            <% } %>
+                            
                             <div class="row g-3">
                                 <% const items = [
                                     { key: 'view', label: 'View', icon: '👁️', color: 'primary' },
@@ -627,58 +676,62 @@
                                     { key: 'save', label: 'Save', icon: '🔖', color: 'warning' }
                                 ]; %>
                                 <% items.forEach(it => {
-                                     const show = Array.isArray(insights) ? insights.includes(it.key) : true;
-                                     const t = metricChange && metricChange[it.key];
+                                    const show = Array.isArray(insights) ? insights.includes(it.key) : true;
+                                    const t = metricChange && metricChange[it.key];
                                 %>
-                                  <% if (show && t && t.start !== null) { %>
+                                <% if (show && t && t.start !== null) { %>
                                     <div class="col-lg-4 col-md-6">
-                                      <div class="border rounded p-3 h-100 bg-light">
+                                    <div class="border rounded p-3 h-100 bg-light">
                                         <div class="d-flex justify-content-between align-items-center mb-2">
-                                          <div class="fw-semibold">
+                                        <div class="fw-semibold">
                                             <%= it.icon %> <%= it.label %>
-                                          </div>
-                                          <% const isUp = t.diff !== null ? t.diff >= 0 : null; %>
-                                          <span class="badge <%= t.diff === 0 ? 'bg-warning' : (isUp ? 'bg-success' : 'bg-danger') %> rounded-pill">
+                                        </div>
+                                        <% const isUp = t.diff !== null ? t.diff >= 0 : null; %>
+                                        <span class="badge <%= t.diff === 0 ? 'bg-warning' : (isUp ? 'bg-success' : 'bg-danger') %> rounded-pill">
                                             <%= t.diff === 0 ? '0' : ((isUp ? '+' : '') + t.diff.toLocaleString()) %>
-                                          </span>
+                                        </span>
                                         </div>
                                         
                                         <div class="small text-muted mb-2">
-                                          <div>Akhir: <strong><%= (t.end !== null ? t.end.toLocaleString() : '0') %></strong></div>
-                                          <div>Awal: <strong><%= (t.start !== null ? t.start.toLocaleString() : '0') %></strong></div>
+                                        <% if (isCompare) { %>
+                                            <div>Bulan Terakhir: <strong><%= (t.end !== null ? t.end.toLocaleString() : '0') %></strong></div>
+                                            <div>Rata-rata Lainnya: <strong><%= (t.start !== null ? t.start.toLocaleString() : '0') %></strong></div>
+                                        <% } else { %>
+                                            <div>Akhir: <strong><%= (t.end !== null ? t.end.toLocaleString() : '0') %></strong></div>
+                                            <div>Awal: <strong><%= (t.start !== null ? t.start.toLocaleString() : '0') %></strong></div>
+                                        <% } %>
                                         </div>
                                         
                                         <div class="progress mb-2" style="height: 8px;">
-                                          <% 
-                                            // Menghitung persentase untuk progress bar
+                                        <% 
                                             const barValue = t.diff !== null ? t.diff : 0;
                                             const maxValue = Math.max(Math.abs(t.start || 0), Math.abs(t.end || 0));
                                             let progressPct = maxValue > 0 ? (Math.abs(barValue) / maxValue) * 100 : 0;
                                             progressPct = Math.min(progressPct, 100);
-                                          %>
-                                          <div class="progress-bar" 
-                                               role="progressbar" 
-                                               data-metric-progress="<%= progressPct %>"
-                                               data-change="<%= barValue %>"
-                                               style="width: 0%"
-                                               aria-valuenow="<%= progressPct %>" 
-                                               aria-valuemin="0" 
-                                               aria-valuemax="100">
-                                          </div>
+                                        %>
+                                        <div class="progress-bar" 
+                                            role="progressbar" 
+                                            data-metric-progress="<%= progressPct %>"
+                                            data-change="<%= barValue %>"
+                                            style="width: 0%"
+                                            aria-valuenow="<%= progressPct %>" 
+                                            aria-valuemin="0" 
+                                            aria-valuemax="100">
+                                        </div>
                                         </div>
                                         
                                         <div class="text-end">
-                                          <% if (t.diff === 0) { %>
+                                        <% if (t.diff === 0) { %>
                                             <span class="badge bg-warning">Tidak ada perubahan</span>
-                                          <% } else { %>
+                                        <% } else { %>
                                             <span class="badge text-bg-light border <%= isUp ? 'text-success' : 'text-danger' %>">
-                                              <%= (t.pct !== null ? (t.pct >= 0 ? '+' : '') + t.pct.toFixed(2) + '%' : '-') %>
+                                            <%= (t.pct !== null ? (t.pct >= 0 ? '+' : '') + t.pct.toFixed(2) + '%' : '-') %>
                                             </span>
-                                          <% } %>
+                                        <% } %>
                                         </div>
-                                      </div>
                                     </div>
-                                  <% } %>
+                                    </div>
+                                <% } %>
                                 <% }) %>
                             </div>
                         </div>

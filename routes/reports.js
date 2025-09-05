@@ -764,7 +764,7 @@ router.get('/print/export', async (req, res) => {
       console.log('🔍 Querying posts from:', actualStartDate, 'to:', actualEndDate);
       
       const [allReports] = await db.query(`
-        SELECT id, platform, judul, post_url, post_date, like_count, comment_count, view_count, share_count, save_count, image_path
+        SELECT id, platform, judul, post_url, post_date, like_count, comment_count, view_count, share_count, save_count, image_path, status
         FROM reports
         WHERE post_date BETWEEN ? AND ?
         ORDER BY post_date DESC, created_at DESC
@@ -971,7 +971,7 @@ router.get('/print/export', async (req, res) => {
       console.log('📅 Date range:', actualStartDate, 'to', actualEndDate);
 
       const [singleReports] = await db.query(`
-        SELECT id, platform, judul, post_url, post_date, like_count, comment_count, view_count, share_count, save_count, image_path
+        SELECT id, platform, judul, post_url, post_date, like_count, comment_count, view_count, share_count, save_count, image_path, status
         FROM reports
         WHERE post_date BETWEEN ? AND ?
         ORDER BY post_date DESC, created_at DESC
@@ -1106,6 +1106,7 @@ router.get('/print/export', async (req, res) => {
         { header: 'Comment', key: 'comment_count', width: 10 },
         { header: 'Share', key: 'share_count', width: 10 },
         { header: 'Save', key: 'save_count', width: 10 },
+        { header: 'Status', key: 'status', width: 10 },
         { header: 'Engagement Rate', key: 'engagement_rate', width: 15 }
       ];
 
@@ -1142,6 +1143,7 @@ router.get('/print/export', async (req, res) => {
           comment_count: report.comment_count || 0,
           share_count: report.share_count || 0,
           save_count: report.save_count || 0,
+          status: report.status || 'running',
           engagement_rate: engagementRate
         });
       }

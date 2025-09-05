@@ -198,6 +198,7 @@
                                     <th>Detail Post</th>
                                     <th width="120">Tanggal</th>
                                     <th width="200">Insight</th>
+                                    <th width="100">Status</th>
                                     <% if (includeThumbs) { %>
                                         <th width="120" class="text-center">Konten</th>
                                     <% } %>
@@ -255,6 +256,17 @@
                                             <% } %>
                                         </div>
                                     </td>
+                                    <td class="text-center">
+                                        <% if (r.status === 'valid') { %>
+                                            <span class="badge bg-success px-2 py-1">
+                                                <i class="bi bi-check-circle-fill me-1"></i>Valid
+                                            </span>
+                                        <% } else { %>
+                                            <span class="badge bg-warning text-dark px-2 py-1">
+                                                <i class="bi bi-clock-fill me-1"></i>Running
+                                            </span>
+                                        <% } %>
+                                    </td>
                                     <% if (includeThumbs) { %>
                                     <td class="text-center">
                                         <% if (r.image_path) { %>
@@ -295,6 +307,7 @@
                     <th>Detail Post</th>
                     <th width="120">Tanggal</th>
                     <th width="200">Insight</th>
+                    <th width="100">Status</th>
                     <% if (includeThumbs) { %>
                         <th width="120" class="text-center">Konten</th>
                     <% } %>
@@ -347,6 +360,17 @@
                                       </div>
                                     <% } %>
                                 </div>
+                            </td>
+                            <td class="text-center">
+                                <% if (r.status === 'valid') { %>
+                                    <span class="badge bg-success px-2 py-1">
+                                        <i class="bi bi-check-circle-fill me-1"></i>Valid
+                                    </span>
+                                <% } else { %>
+                                    <span class="badge bg-warning text-dark px-2 py-1">
+                                        <i class="bi bi-clock-fill me-1"></i>Running
+                                    </span>
+                                <% } %>
                             </td>
                             <% if (includeThumbs) { %>
                             <td class="text-center">

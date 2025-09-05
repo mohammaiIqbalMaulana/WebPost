@@ -6,69 +6,120 @@
 <div class="card shadow-sm">
     <div class="card-body">
         <form method="GET" action="/reports/print/export" class="row g-3">
-            <div class="col-md-3">
-                <label class="form-label">Tanggal Mulai</label>
-                <input type="date" name="start_date" class="form-control" required>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Tanggal Akhir</label>
-                <input type="date" name="end_date" class="form-control" required>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Perbandingan Bulan</label>
-                <div class="form-check form-switch mt-1">
-                    <input class="form-check-input" type="checkbox" role="switch" id="compareSwitch">
-                    <label class="form-check-label" for="compareSwitch">Aktifkan</label>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Format</label>
-                <select name="format" class="form-select">
-                    <option value="pdf">PDF</option>
-                    <option value="excel">Excel</option>
-                </select>
-            </div>
-            <div class="col-md-3 d-flex align-items-end">
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" value="1" id="includeThumbs" name="include_thumbnails">
-                    <label class="form-check-label" for="includeThumbs">
-                        Sertakan Konten
-                    </label>
-                </div>
-            </div>
-            <div class="col-12" id="compareControls" style="display:none;">
-                <div class="row g-3">
-                    <div class="col-md-3">
-                        <label class="form-label">Bulan Akhir</label>
-                        <input type="month" id="end_month" class="form-control">
+            
+            <!-- Alert Info Mode -->
+            <div class="col-12">
+                <div class="alert alert-info border-0 d-flex align-items-start" id="modeInfo">
+                    <i class="bi bi-info-circle-fill me-2 mt-1"></i>
+                    <div>
+                        <strong>Mode Normal:</strong> Pilih rentang tanggal untuk melihat semua postingan dalam periode tersebut.
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Durasi</label>
-                        <select id="num_months" class="form-select">
-                            <option value="1">1 Bulan</option>
-                            <option value="3" selected>3 Bulan</option>
-                            <option value="6">6 Bulan</option>
-                            <option value="12">1 Tahun</option>
-                        </select>
+                </div>
+            </div>
+
+            <!-- Date Range Section -->
+            <div class="col-12">
+                <div class="row g-3" id="dateRangeSection">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Tanggal Mulai</label>
+                        <input type="date" name="start_date" id="start_date" class="form-control" required>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Bulan yang Dibandingkan</label>
-                        <div id="monthPreview" class="d-flex flex-wrap gap-2"></div>
+                        <label class="form-label fw-semibold">Tanggal Akhir</label>
+                        <input type="date" name="end_date" id="end_date" class="form-control" required>
                     </div>
                 </div>
-                <input type="hidden" name="compare" id="compare" value="0">
-                <input type="hidden" name="end_month" id="end_month_hidden" value="">
-                <input type="hidden" name="months" id="months_hidden" value="3">
             </div>
-            <div class="col-12 d-flex gap-2">
-                <a href="/reports/analytics" class="btn btn-secondary">
-                    <i class="bi bi-arrow-left"></i>
-                </a>
-                <input type="hidden" name="selected_insights" id="selected_insights" value="">
-                <button type="button" id="btnOpenInsightModal" class="btn btn-success">
-                    <i class="bi bi-file-earmark-arrow-down me-1"></i>
-                    Buat Report
-                </button>
+
+            <!-- Comparison Switch -->
+            <div class="col-12">
+                <div class="card border-primary">
+                    <div class="card-body py-3">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <h6 class="card-title mb-1">Mode Perbandingan Bulan</h6>
+                                <small class="text-muted">Bandingkan insight antar bulan dalam periode tertentu</small>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="compareSwitch">
+                                <label class="form-check-label fw-semibold" for="compareSwitch">Aktifkan</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comparison Controls (Hidden by default) -->
+            <div class="col-12" id="compareControls" style="display:none;">
+                <div class="card border-warning">
+                    <div class="card-body">
+                        <h6 class="card-title text-warning mb-3">
+                            <i class="bi bi-calendar-week me-1"></i>
+                            Pengaturan Perbandingan
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Bulan Terakhir</label>
+                                <input type="month" id="end_month" class="form-control">
+                                <small class="text-muted">Bulan akhir dalam perbandingan</small>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Durasi Perbandingan</label>
+                                <select id="num_months" class="form-select">
+                                    <option value="1">1 Bulan</option>
+                                    <option value="2">2 Bulan</option>
+                                    <option value="3" selected>3 Bulan</option>
+                                    <option value="6">6 Bulan</option>
+                                    <option value="12">1 Tahun</option>
+                                </select>
+                                <small class="text-muted">Jumlah bulan yang akan dibandingkan</small>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Preview Bulan</label>
+                                <div id="monthPreview" class="d-flex flex-wrap gap-1 p-2 border rounded bg-light min-height-40">
+                                    <small class="text-muted align-self-center">Akan muncul setelah memilih bulan</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Hidden inputs for comparison -->
+                        <input type="hidden" name="compare" id="compare" value="0">
+                        <input type="hidden" name="end_month" id="end_month_hidden" value="">
+                        <input type="hidden" name="months" id="months_hidden" value="3">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Other Options -->
+            <div class="col-12">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Format Export</label>
+                        <select name="format" class="form-select">
+                            <option value="pdf">PDF</option>
+                            <option value="excel">Excel</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="1" id="includeThumbs" name="include_thumbnails">
+                            <label class="form-check-label fw-semibold" for="includeThumbs">
+                                Sertakan Konten Gambar
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end justify-content-end">
+                        <div class="d-flex gap-2">
+                            <a href="/reports/analytics" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-1"></i>Kembali
+                            </a>
+                            <button type="button" id="btnOpenInsightModal" class="btn btn-success">
+                                <i class="bi bi-file-earmark-arrow-down me-1"></i>
+                                Buat Report
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </form>
     </div>
@@ -76,56 +127,121 @@
 
 <!-- Modal: Pilih Insight -->
 <div class="modal fade" id="insightModal" tabindex="-1" aria-labelledby="insightModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="insightModalLabel">Pilih Insight yang Ditampilkan</h5>
+                <h5 class="modal-title" id="insightModalLabel">
+                    <i class="bi bi-graph-up me-2"></i>
+                    Pilih Insight yang Ditampilkan
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div class="row">
-                    <div class="col-12">
+                <div class="alert alert-info border-0 mb-3">
+                    <i class="bi bi-lightbulb me-2"></i>
+                    Pilih metrik yang ingin ditampilkan dalam report. Semua insight akan dicentang secara default.
+                </div>
+                <div class="row g-2">
+                    <div class="col-md-4">
                         <div class="form-check">
                             <input class="form-check-input insight-check" type="checkbox" value="view" id="insight_view" checked>
-                            <label class="form-check-label" for="insight_view">View</label>
+                            <label class="form-check-label fw-semibold" for="insight_view">
+                                <i class="bi bi-eye me-1 text-primary"></i>View
+                            </label>
                         </div>
+                    </div>
+                    <div class="col-md-4">
                         <div class="form-check">
                             <input class="form-check-input insight-check" type="checkbox" value="like" id="insight_like" checked>
-                            <label class="form-check-label" for="insight_like">Like</label>
+                            <label class="form-check-label fw-semibold" for="insight_like">
+                                <i class="bi bi-heart me-1 text-danger"></i>Like
+                            </label>
                         </div>
+                    </div>
+                    <div class="col-md-4">
                         <div class="form-check">
                             <input class="form-check-input insight-check" type="checkbox" value="comment" id="insight_comment" checked>
-                            <label class="form-check-label" for="insight_comment">Comment</label>
+                            <label class="form-check-label fw-semibold" for="insight_comment">
+                                <i class="bi bi-chat me-1 text-success"></i>Comment
+                            </label>
                         </div>
+                    </div>
+                    <div class="col-md-4">
                         <div class="form-check">
                             <input class="form-check-input insight-check" type="checkbox" value="share" id="insight_share" checked>
-                            <label class="form-check-label" for="insight_share">Share</label>
+                            <label class="form-check-label fw-semibold" for="insight_share">
+                                <i class="bi bi-share me-1 text-info"></i>Share
+                            </label>
                         </div>
+                    </div>
+                    <div class="col-md-4">
                         <div class="form-check">
                             <input class="form-check-input insight-check" type="checkbox" value="save" id="insight_save" checked>
-                            <label class="form-check-label" for="insight_save">Save</label>
+                            <label class="form-check-label fw-semibold" for="insight_save">
+                                <i class="bi bi-bookmark me-1 text-warning"></i>Save
+                            </label>
                         </div>
+                    </div>
+                    <div class="col-md-4">
                         <div class="form-check">
                             <input class="form-check-input insight-check" type="checkbox" value="er" id="insight_er" checked>
-                            <label class="form-check-label" for="insight_er">ER</label>
+                            <label class="form-check-label fw-semibold" for="insight_er">
+                                <i class="bi bi-graph-up-arrow me-1 text-purple"></i>Engagement Rate
+                            </label>
                         </div>
-                        <!-- Follower tidak dipilih per posting, ditampilkan sebagai ringkasan terpisah dari tabel followers -->
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                <button type="button" id="btnConfirmInsights" class="btn btn-primary">Lanjutkan</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-1"></i>Batal
+                </button>
+                <button type="button" id="btnConfirmInsights" class="btn btn-primary">
+                    <i class="bi bi-check-lg me-1"></i>Lanjutkan
+                </button>
             </div>
         </div>
     </div>
 </div>
 
+<style>
+    .min-height-40 {
+        min-height: 40px;
+    }
+    .comparison-controls {
+        background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+    }
+    .badge-month {
+        font-size: 0.7rem;
+        padding: 0.25rem 0.5rem;
+        margin: 0.1rem;
+    }
+    .disabled-section {
+        opacity: 0.6;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+    }
+    .mode-info {
+        transition: all 0.3s ease;
+    }
+</style>
+
 <script>
     (function(){
+        console.log('🚀 Print form script loaded');
+        
         const btnOpen = document.getElementById('btnOpenInsightModal');
         const btnConfirm = document.getElementById('btnConfirmInsights');
-        const hiddenInput = document.getElementById('selected_insights');
+        const hiddenInput = document.getElementById('selected_insights') || (() => {
+            // Create hidden input if it doesn't exist
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'selected_insights';
+            input.id = 'selected_insights';
+            document.querySelector('form').appendChild(input);
+            return input;
+        })();
+        
         const form = document.querySelector('form[action="/reports/print/export"]');
         const compareSwitch = document.getElementById('compareSwitch');
         const compareControls = document.getElementById('compareControls');
@@ -135,21 +251,64 @@
         const compareHidden = document.getElementById('compare');
         const endMonthHidden = document.getElementById('end_month_hidden');
         const monthsHidden = document.getElementById('months_hidden');
+        
+        // Form elements
+        const startDateInput = document.getElementById('start_date');
+        const endDateInput = document.getElementById('end_date');
+        const dateRangeSection = document.getElementById('dateRangeSection');
+        const modeInfo = document.getElementById('modeInfo');
 
         function formatLabel(y, m){
             const names = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
             return names[m-1] + ' ' + y;
         }
 
+        function updateModeInfo(isCompare) {
+            if (isCompare) {
+                modeInfo.innerHTML = `
+                    <i class="bi bi-graph-up me-2 mt-1 text-warning"></i>
+                    <div>
+                        <strong class="text-warning">Mode Perbandingan:</strong> Sistem akan membandingkan insight antar bulan berdasarkan periode yang dipilih. Rentang tanggal akan dihitung otomatis.
+                    </div>
+                `;
+                modeInfo.className = 'alert alert-warning border-0 d-flex align-items-start mode-info';
+            } else {
+                modeInfo.innerHTML = `
+                    <i class="bi bi-info-circle-fill me-2 mt-1"></i>
+                    <div>
+                        <strong>Mode Normal:</strong> Pilih rentang tanggal untuk melihat semua postingan dalam periode tersebut.
+                    </div>
+                `;
+                modeInfo.className = 'alert alert-info border-0 d-flex align-items-start mode-info';
+            }
+        }
+
+        function toggleDateRangeSection(disable) {
+            if (disable) {
+                dateRangeSection.classList.add('disabled-section');
+                startDateInput.disabled = true;
+                endDateInput.disabled = true;
+                startDateInput.removeAttribute('required');
+                endDateInput.removeAttribute('required');
+            } else {
+                dateRangeSection.classList.remove('disabled-section');
+                startDateInput.disabled = false;
+                endDateInput.disabled = false;
+                startDateInput.setAttribute('required', '');
+                endDateInput.setAttribute('required', '');
+            }
+        }
+
         function buildPreview(){
-            console.log('=== BUILD PREVIEW ===');
+            console.log('📅 Building month preview...');
             monthPreview.innerHTML = '';
-            const endVal = endMonthInput.value; // YYYY-MM
+            const endVal = endMonthInput.value;
             const n = parseInt(numMonthsSelect.value || '3');
-            console.log('Building preview with endVal:', endVal, 'n:', n);
+            
+            console.log('End month:', endVal, 'Duration:', n);
 
             if(!endVal) {
-                console.log('No endVal, returning');
+                monthPreview.innerHTML = '<small class="text-muted align-self-center">Pilih bulan terakhir untuk melihat preview</small>';
                 return;
             }
 
@@ -157,112 +316,91 @@
             console.log('Parsed end year:', ey, 'end month:', em);
 
             const months = [];
-
-            // Generate months from oldest to newest (same as backend)
             let y = ey, m = em;
 
-            // Go back n months to find the starting month
-            for(let i = 0; i < n; i++){
+            // Go back n-1 months to find starting month
+            for(let i = 0; i < n - 1; i++){
                 m -= 1;
                 if(m === 0){ m = 12; y -= 1; }
             }
 
-            // Now add months from oldest to newest
-            for(let i = 0; i <= n; i++){
+            // Generate months from oldest to newest
+            for(let i = 0; i < n; i++){
                 months.push({ y, m });
-                console.log(`Added month ${i}:`, { y, m });
+                console.log(`Month ${i + 1}:`, { y, m });
 
-                // Move to next month
                 m += 1;
                 if(m === 13){ m = 1; y += 1; }
             }
 
-            console.log('Final months array (oldest to newest):', months);
+            console.log('Generated months:', months);
 
-            months.forEach(({y,m})=>{
+            // Clear and rebuild preview
+            months.forEach(({y,m}, index)=>{
                 const badge = document.createElement('span');
-                badge.className = 'badge text-bg-light border';
+                badge.className = `badge text-bg-primary badge-month`;
                 badge.textContent = formatLabel(y,m);
+                
+                if (index === months.length - 1) {
+                    badge.classList.add('text-bg-success');
+                    badge.title = 'Bulan terakhir (referensi)';
+                }
+                
                 monthPreview.appendChild(badge);
             });
 
             console.log('Preview built successfully');
         }
 
+        // Compare switch handler
         compareSwitch.addEventListener('change', function(){
-            const on = compareSwitch.checked;
-            compareControls.style.display = on ? '' : 'none';
-            compareHidden.value = on ? '1' : '0';
+            const isOn = compareSwitch.checked;
+            console.log('🔄 Compare mode toggled:', isOn);
+            
+            compareControls.style.display = isOn ? 'block' : 'none';
+            compareHidden.value = isOn ? '1' : '0';
+            
+            updateModeInfo(isOn);
+            toggleDateRangeSection(isOn);
+            
+            if (isOn) {
+                buildPreview();
+            }
         });
 
+        // Month inputs change handlers
         endMonthInput.addEventListener('change', buildPreview);
         numMonthsSelect.addEventListener('change', buildPreview);
 
-        // default end month = current month (only if not already set)
+        // Set default end month to current month
         if (!endMonthInput.value) {
             const now = new Date();
-            const ym = now.toISOString().slice(0,7);
-            console.log('Setting default end_month to:', ym);
-            endMonthInput.value = ym;
-            buildPreview();
-        } else {
-            console.log('end_month already has value:', endMonthInput.value);
-            buildPreview();
+            const currentMonth = now.toISOString().slice(0,7);
+            console.log('Setting default end_month to:', currentMonth);
+            endMonthInput.value = currentMonth;
         }
 
-        // Auto-update end_month when end_date changes
-        const endDateInput = document.querySelector('input[name="end_date"]');
-        if (endDateInput) {
-            console.log('Setting up end_date change listener');
-            endDateInput.addEventListener('change', function() {
-                console.log('=== FRONTEND DEBUG ===');
-                console.log('End date changed:', this.value);
-                console.log('Current end_month value before change:', endMonthInput.value);
-                if (this.value) {
-                    try {
-                        // Extract year-month from the selected end date
-                        const dateValue = this.value;
-                        console.log('Raw date value:', dateValue);
-
-                        // Parse date more robustly
-                        let endDate;
-                        if (dateValue.includes('T')) {
-                            endDate = new Date(dateValue);
-                        } else {
-                            endDate = new Date(dateValue + 'T00:00:00');
-                        }
-
-                        console.log('Parsed date object:', endDate);
-                        console.log('Parsed date ISO string:', endDate.toISOString());
-
-                        // Extract year and month manually to avoid timezone issues
-                        const year = endDate.getFullYear();
-                        const month = endDate.getMonth() + 1; // getMonth() returns 0-11
-                        const yearMonth = `${year}-${String(month).padStart(2, '0')}`;
-
-                        console.log('Extracted year:', year, 'month:', month);
-                        console.log('Final yearMonth:', yearMonth);
-                        console.log('Setting end_month to:', yearMonth);
-
-                        endMonthInput.value = yearMonth;
-                        console.log('end_month value after setting:', endMonthInput.value);
-
-                        // Force update the preview
-                        setTimeout(() => {
-                            buildPreview();
-                            console.log('Preview updated');
-                        }, 10);
-                    } catch (error) {
-                        console.error('Error parsing date:', error);
-                    }
+        // Auto-sync end_month when end_date changes (for normal mode)
+        endDateInput.addEventListener('change', function() {
+            if (!compareSwitch.checked && this.value) {
+                try {
+                    const endDate = new Date(this.value + 'T00:00:00');
+                    const year = endDate.getFullYear();
+                    const month = endDate.getMonth() + 1;
+                    const yearMonth = `${year}-${String(month).padStart(2, '0')}`;
+                    
+                    console.log('🔄 Auto-sync end_month from end_date:', yearMonth);
+                    endMonthInput.value = yearMonth;
+                } catch (error) {
+                    console.error('Error auto-syncing end_month:', error);
                 }
-            });
-        } else {
-            console.log('ERROR: end_date input not found!');
-        }
+            }
+        });
 
+        // Insight modal handlers
         if (btnOpen) {
             btnOpen.addEventListener('click', function(){
+                console.log('🎯 Opening insight modal');
                 const modal = new bootstrap.Modal(document.getElementById('insightModal'));
                 modal.show();
             });
@@ -270,39 +408,68 @@
 
         if (btnConfirm) {
             btnConfirm.addEventListener('click', function(){
+                console.log('✅ Confirming insights selection');
+                
+                // Collect selected insights
                 const checks = Array.from(document.querySelectorAll('.insight-check'));
                 const selected = checks.filter(c => c.checked).map(c => c.value);
                 hiddenInput.value = selected.length ? selected.join(',') : 'view,like,comment,share,save,er';
+                
+                console.log('Selected insights:', hiddenInput.value);
 
-                // Final sync of compare params - ensure end_month is correct
-                const endDateValue = document.querySelector('input[name="end_date"]').value;
-                if (endDateValue) {
-                    try {
-                        const endDate = new Date(endDateValue + 'T00:00:00');
-                        const year = endDate.getFullYear();
-                        const month = endDate.getMonth() + 1;
-                        const correctYearMonth = `${year}-${String(month).padStart(2, '0')}`;
-                        endMonthInput.value = correctYearMonth;
-                        console.log('Final end_month correction:', correctYearMonth);
-                    } catch (error) {
-                        console.error('Error in final end_month correction:', error);
+                // Validate form before submit
+                let isValid = true;
+                let errorMsg = '';
+
+                if (compareSwitch.checked) {
+                    // Comparison mode validation
+                    if (!endMonthInput.value) {
+                        isValid = false;
+                        errorMsg = 'Pilih bulan terakhir untuk mode perbandingan';
                     }
+                    
+                    // Sync comparison parameters
+                    endMonthHidden.value = endMonthInput.value;
+                    monthsHidden.value = numMonthsSelect.value;
+                    
+                    console.log('🔄 Comparison mode params:');
+                    console.log('- end_month:', endMonthHidden.value);
+                    console.log('- months:', monthsHidden.value);
+                    
+                } else {
+                    // Normal mode validation
+                    if (!startDateInput.value || !endDateInput.value) {
+                        isValid = false;
+                        errorMsg = 'Pilih tanggal mulai dan akhir untuk mode normal';
+                    }
+                    
+                    console.log('📅 Normal mode params:');
+                    console.log('- start_date:', startDateInput.value);
+                    console.log('- end_date:', endDateInput.value);
                 }
 
-                endMonthHidden.value = endMonthInput.value;
-                monthsHidden.value = numMonthsSelect.value;
+                if (!isValid) {
+                    alert('⚠️ ' + errorMsg);
+                    return;
+                }
 
-                console.log('=== FINAL FORM SUBMISSION ===');
-                console.log('end_date:', endDateValue);
-                console.log('end_month (visible):', endMonthInput.value);
-                console.log('end_month_hidden:', endMonthHidden.value);
-                console.log('months_hidden:', monthsHidden.value);
-
+                // Close modal and submit
                 const modalEl = document.getElementById('insightModal');
                 const modalInst = bootstrap.Modal.getInstance(modalEl);
                 if (modalInst) modalInst.hide();
+                
+                console.log('🚀 Submitting form...');
                 form.submit();
             });
+        }
+
+        // Initialize
+        console.log('✅ Print form script initialized');
+        updateModeInfo(false);
+        
+        // Build initial preview if comparison is enabled
+        if (compareSwitch.checked) {
+            buildPreview();
         }
     })();
 </script>

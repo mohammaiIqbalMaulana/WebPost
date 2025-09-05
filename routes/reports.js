@@ -5,6 +5,7 @@ const { formatDate, formatDateTime } = require('../utils/dateHelper');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const ExcelJS = require('exceljs');
 
 // Helper function to check if target is achieved
 function isTargetAchieved(engagementRate, targetRate) {
@@ -375,13 +376,13 @@ router.post('/update', async (req, res) => {
 // 📌 UPDATE FOLLOWER - endpoint untuk update follower count ke tabel terpisah
 router.post('/update-follower', async (req, res) => {
   try {
-    const { platform, follower_count } = req.body;
+    const { platform, follower_count, recorded_date } = req.body;
 
     // Validasi input
-    if (!platform || !follower_count) {
+    if (!platform || !follower_count || !recorded_date) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Platform dan follower count harus diisi' 
+        message: 'Platform, follower count, dan periode bulan harus diisi' 
       });
     }
 
@@ -393,19 +394,72 @@ router.post('/update-follower', async (req, res) => {
       });
     }
 
-    // Insert data follower baru
-    await db.query(
-      "INSERT INTO followers (platform, follower_count, recorded_date) VALUES (?, ?, CURDATE())",
-      [platform, followerNum]
-    );
+    // Validasi format tanggal (YYYY-MM-DD)
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(recorded_date)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Format tanggal tidak valid (YYYY-MM-DD)' 
+      });
+    }
+
+    // Extract year-month untuk cek existing record
+    const recordedYear = new Date(recorded_date).getFullYear();
+    const recordedMonth = new Date(recorded_date).getMonth() + 1;
+    
+    // Cek apakah sudah ada record untuk platform dan bulan yang sama
+    const [existingRecords] = await db.query(`
+      SELECT id, follower_count, recorded_date, created_at 
+      FROM followers 
+      WHERE platform = ? 
+        AND YEAR(recorded_date) = ? 
+        AND MONTH(recorded_date) = ?
+    `, [platform, recordedYear, recordedMonth]);
+
+    let action = 'created';
+    let recordId;
+
+    if (existingRecords.length > 0) {
+      // UPDATE existing record
+      const existingRecord = existingRecords[0];
+      await db.query(
+        "UPDATE followers SET follower_count = ?, recorded_date = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        [followerNum, recorded_date, existingRecord.id]
+      );
+      action = 'updated';
+      recordId = existingRecord.id;
+    } else {
+      // INSERT new record
+      const [insertResult] = await db.query(
+        "INSERT INTO followers (platform, follower_count, recorded_date) VALUES (?, ?, ?)",
+        [platform, followerNum, recorded_date]
+      );
+      recordId = insertResult.insertId;
+      action = 'created';
+    }
+
+    // Format response dengan info yang jelas
+    const monthName = new Date(recorded_date).toLocaleDateString('id-ID', { 
+      month: 'long', 
+      year: 'numeric' 
+    });
+    
+    const updateDate = new Date().toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: 'short', 
+      year: 'numeric'
+    });
 
     return res.json({
       success: true,
-      message: 'Data follower berhasil disimpan',
+      message: `Data follower berhasil ${action === 'created' ? 'disimpan' : 'diperbarui'}`,
       data: {
-        platform: platform,
-        follower_count: followerNum,
-        recorded_date: new Date().toISOString().split('T')[0]
+        platform: platform.toUpperCase(),
+        follower_count: followerNum.toLocaleString('id-ID'),
+        period: monthName,
+        update_date: updateDate,
+        action: action,
+        record_id: recordId
       }
     });
 
@@ -435,6 +489,59 @@ router.get('/get-latest-follower/:platform', async (req, res) => {
     return res.status(500).json({ 
       success: false, 
       message: 'Gagal mendapatkan data follower: ' + err.message 
+    });
+  }
+});
+
+// 📌 GET FOLLOWER INFO - New endpoint untuk info follower terbaru
+router.get('/get-follower-info/:platform?', async (req, res) => {
+  try {
+    const platform = req.params.platform || 'tiktok';
+    
+    const [followerData] = await db.query(`
+      SELECT follower_count, recorded_date, updated_at, created_at
+      FROM followers 
+      WHERE platform = ? 
+      ORDER BY recorded_date DESC, updated_at DESC 
+      LIMIT 1
+    `, [platform]);
+
+    if (followerData.length === 0) {
+      return res.json({
+        success: true,
+        hasData: false,
+        message: 'Belum ada data follower'
+      });
+    }
+
+    const data = followerData[0];
+    const monthName = new Date(data.recorded_date).toLocaleDateString('id-ID', { 
+      month: 'long', 
+      year: 'numeric' 
+    });
+    
+    const updateDate = new Date(data.updated_at || data.created_at).toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: 'short', 
+      year: 'numeric'
+    });
+
+    return res.json({
+      success: true,
+      hasData: true,
+      platform: platform.toUpperCase(),
+      follower_count: Number(data.follower_count),
+      follower_count_formatted: Number(data.follower_count).toLocaleString('id-ID'),
+      period: monthName,
+      update_date: updateDate,
+      recorded_date: data.recorded_date
+    });
+
+  } catch (err) {
+    console.error("Error getting follower info:", err);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Gagal mendapatkan info follower: ' + err.message 
     });
   }
 });
@@ -564,13 +671,10 @@ router.get('/print', async (req, res) => {
 });
 
 // 📌 CETAK REPORT - Hasil dengan follower dari tabel terpisah
+// 📌 CETAK REPORT - Hasil dengan follower dari tabel terpisah (FIXED VERSION)
 router.get('/print/export', async (req, res) => {
   try {
     const { start_date, end_date, include_thumbnails, format, selected_insights, compare, end_month, months } = req.query;
-
-    if (!start_date || !end_date) {
-      return res.status(400).send('Tanggal mulai dan akhir wajib diisi');
-    }
 
     const includeThumbs = String(include_thumbnails) === '1';
     const exportFormat = (format || 'pdf').toLowerCase();
@@ -591,48 +695,61 @@ router.get('/print/export', async (req, res) => {
     let metricChange = {};
     let averageER = 0;
     let totalPostingan = 0;
+    
+    // FIXED: Variables untuk actual date range yang akan digunakan
+    let actualStartDate, actualEndDate;
 
     if (isCompare && end_month && months) {
-      // Mode perbandingan bulan
+      // MODE PERBANDINGAN
+      console.log('🔧 MODE PERBANDINGAN AKTIF');
+      
+      if (!end_month) {
+        return res.status(400).send('End month harus diisi untuk mode perbandingan');
+      }
+
       const numMonths = parseInt(months) || 3;
       const [endYear, endMonthNum] = end_month.split('-').map(Number);
 
-      // Debug logging for month comparison
-      console.log('Month comparison debug:');
-      console.log('end_month:', end_month, 'months:', months);
-      console.log('Parsed: endYear=', endYear, 'endMonthNum=', endMonthNum);
+      console.log('📊 Perbandingan Config:');
+      console.log('- End Month:', end_month);
+      console.log('- Number of months:', numMonths);
+      console.log('- Parsed: endYear=', endYear, 'endMonthNum=', endMonthNum);
 
-      // Generate array of months to compare
-      // Start from oldest month (comparison) to newest month (current)
-      const compareMonths = [];
-
-      console.log('Generating months for comparison:');
-      console.log('Starting with year:', endYear, 'month:', endMonthNum);
-      console.log('Number of months to generate:', numMonths);
-
-      // Start from the oldest month (numMonths months ago) to current month
-      let currentYear = endYear;
-      let currentMonth = endMonthNum;
-
-      // Go back numMonths to find the starting month
-      for (let i = 0; i < numMonths; i++) {
-        currentMonth--;
-        if (currentMonth === 0) {
-          currentMonth = 12;
-          currentYear--;
-        }
+      // FIXED: Calculate actual date range untuk query postingan
+      // Start dari bulan pertama dalam comparison
+      let startYear = endYear;
+      let startMonth = endMonthNum - (numMonths - 1);
+      
+      while (startMonth <= 0) {
+        startMonth += 12;
+        startYear--;
       }
+      
+      actualStartDate = `${startYear}-${String(startMonth).padStart(2, '0')}-01`;
+      actualEndDate = new Date(endYear, endMonthNum, 0).toISOString().split('T')[0];
+      
+      console.log('📅 Calculated date range:');
+      console.log('- actualStartDate:', actualStartDate);
+      console.log('- actualEndDate:', actualEndDate);
 
-      // Now generate months from oldest to newest
-      for (let i = 0; i <= numMonths; i++) {
+      // Generate array of months to compare (oldest to newest)
+      const compareMonths = [];
+      let currentYear = startYear;
+      let currentMonth = startMonth;
+
+      for (let i = 0; i < numMonths; i++) {
         const monthData = {
           year: currentYear,
           month: currentMonth,
-          monthName: new Date(currentYear, currentMonth - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }),
+          monthName: new Date(currentYear, currentMonth - 1, 1).toLocaleDateString('id-ID', { 
+            month: 'long', 
+            year: 'numeric' 
+          }),
           startDate: `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`,
           endDate: new Date(currentYear, currentMonth, 0).toISOString().split('T')[0]
         };
-        console.log(`Adding month ${i + 1} (oldest to newest):`, monthData);
+        
+        console.log(`📅 Month ${i + 1}:`, monthData);
         compareMonths.push(monthData);
 
         // Move to next month
@@ -643,17 +760,22 @@ router.get('/print/export', async (req, res) => {
         }
       }
 
-      console.log('Final compareMonths array (oldest to newest):', compareMonths);
-
-      // Get posts ONLY from the selected date range (not from comparison months)
+      // FIXED: Get posts ONLY from calculated date range
+      console.log('🔍 Querying posts from:', actualStartDate, 'to:', actualEndDate);
+      
       const [allReports] = await db.query(`
         SELECT id, platform, judul, post_url, post_date, like_count, comment_count, view_count, share_count, save_count, image_path
         FROM reports
         WHERE post_date BETWEEN ? AND ?
         ORDER BY post_date DESC, created_at DESC
-      `, [start_date, end_date]);
+      `, [actualStartDate, actualEndDate]);
 
-      // Get ALL follower data for the entire comparison period and beyond
+      console.log('📋 Found posts:', allReports.length);
+      allReports.forEach(r => {
+        console.log(`- ${r.judul} (${r.post_date})`);
+      });
+
+      // Get ALL follower data for comparison period
       let allFollowerData = [];
       try {
         const [followerRecords] = await db.query(`
@@ -662,20 +784,20 @@ router.get('/print/export', async (req, res) => {
           WHERE platform = 'tiktok'
           ORDER BY recorded_date DESC
         `);
-
         allFollowerData = followerRecords;
+        console.log('👥 Follower records found:', allFollowerData.length);
       } catch (followerError) {
-        console.error('Error getting all follower data:', followerError);
+        console.error('Error getting follower data:', followerError);
       }
 
-      // Get data for each month (follower data only, no posts from comparison months)
+      // Process each month
       for (const monthData of compareMonths) {
+        console.log(`\n🗓️  Processing month: ${monthData.monthName}`);
+        
         // Get follower data for this month
         let followerCount = null;
         try {
           const monthEndDate = new Date(monthData.endDate);
-
-          // Find the follower count that was recorded closest to (but not after) the month end
           let closestFollower = null;
           let minDiff = Infinity;
 
@@ -683,7 +805,6 @@ router.get('/print/export', async (req, res) => {
             const followerDate = new Date(follower.recorded_date);
             const diff = monthEndDate - followerDate;
 
-            // Only consider follower data recorded on or before the month end
             if (diff >= 0 && diff < minDiff) {
               minDiff = diff;
               closestFollower = follower;
@@ -692,20 +813,31 @@ router.get('/print/export', async (req, res) => {
 
           if (closestFollower) {
             followerCount = Number(closestFollower.follower_count);
+            console.log(`👥 Follower for ${monthData.monthName}:`, followerCount);
+          } else {
+            console.log(`❌ No follower data for ${monthData.monthName}`);
           }
         } catch (followerError) {
-          console.error('Error getting follower data for month:', followerError);
+          console.error('Error processing follower for month:', followerError);
         }
 
-        // Filter posts that belong to this month from the selected date range
+        // Filter posts for this specific month
         const monthReports = allReports.filter(report => {
           const reportDate = new Date(report.post_date);
           const monthStart = new Date(monthData.startDate);
           const monthEnd = new Date(monthData.endDate);
-          return reportDate >= monthStart && reportDate <= monthEnd;
+          const isInMonth = reportDate >= monthStart && reportDate <= monthEnd;
+          
+          if (isInMonth) {
+            console.log(`✅ Post "${report.judul}" belongs to ${monthData.monthName}`);
+          }
+          
+          return isInMonth;
         });
 
-        // Aggregate metrics for this month (only from posts in selected date range that belong to this month)
+        console.log(`📊 Posts in ${monthData.monthName}:`, monthReports.length);
+
+        // Aggregate metrics for this month
         const monthTotals = monthReports.reduce((acc, r) => {
           acc.view += Number(r.view_count || 0);
           acc.like += Number(r.like_count || 0);
@@ -747,7 +879,7 @@ router.get('/print/export', async (req, res) => {
               erSum += erNum;
               erCount += 1;
             } catch (e) {
-              // skip error
+              console.error('ER calculation error:', e);
             }
           }
 
@@ -773,22 +905,20 @@ router.get('/print/export', async (req, res) => {
         totalPostingan += monthReports.length;
       }
 
-      // Calculate overall follower change using the same logic as individual months
+      // Calculate follower change
       const validFollowers = monthlyData.filter(m => m.followerCount !== null);
       if (validFollowers.length >= 2) {
-        // Use the first and last valid follower counts from the comparison period
         const firstFollower = validFollowers[0].followerCount;
         const lastFollower = validFollowers[validFollowers.length - 1].followerCount;
         const diff = lastFollower - firstFollower;
         const pct = firstFollower > 0 ? (diff / firstFollower) * 100 : null;
         followerChange = { start: firstFollower, end: lastFollower, diff, pct };
       } else if (validFollowers.length === 1) {
-        // If only one follower count is available, show it as both start and end
         const singleFollower = validFollowers[0].followerCount;
         followerChange = { start: singleFollower, end: singleFollower, diff: 0, pct: 0 };
       }
 
-      // Calculate overall metric changes
+      // Calculate metric changes
       const pickStartEnd = (key) => {
         const values = monthlyData.map(m => m.totals[key]).filter(v => v !== null && v !== undefined);
         if (values.length < 2) return { start: null, end: null, diff: null, pct: null };
@@ -820,18 +950,37 @@ router.get('/print/export', async (req, res) => {
       const validERs = monthlyData.filter(m => m.hasPosts).map(m => m.averageER);
       averageER = validERs.length > 0 ? (validERs.reduce((sum, er) => sum + er, 0) / validERs.length) : 0;
 
+      // Populate reports array for Excel export
+      reports = allReports;
+
+      console.log('📈 Final Comparison Results:');
+      console.log('- Total posts:', totalPostingan);
+      console.log('- Average ER:', averageER);
+      console.log('- Follower change:', followerChange);
+
     } else {
-      // Mode normal (single period)
+      // MODE NORMAL - FIXED: Validate required fields
+      if (!start_date || !end_date) {
+        return res.status(400).send('Tanggal mulai dan akhir wajib diisi untuk mode normal');
+      }
+      
+      actualStartDate = start_date;
+      actualEndDate = end_date;
+      
+      console.log('🔧 MODE NORMAL AKTIF');
+      console.log('📅 Date range:', actualStartDate, 'to', actualEndDate);
+
       const [singleReports] = await db.query(`
         SELECT id, platform, judul, post_url, post_date, like_count, comment_count, view_count, share_count, save_count, image_path
         FROM reports
         WHERE post_date BETWEEN ? AND ?
         ORDER BY post_date DESC, created_at DESC
-      `, [start_date, end_date]);
+      `, [actualStartDate, actualEndDate]);
 
       reports = singleReports;
+      console.log('📋 Found posts:', reports.length);
 
-      // Aggregate totals for insights
+      // Aggregate totals
       totals = singleReports.reduce((acc, r) => {
         acc.view += Number(r.view_count || 0);
         acc.like += Number(r.like_count || 0);
@@ -841,7 +990,7 @@ router.get('/print/export', async (req, res) => {
         return acc;
       }, { view: 0, like: 0, comment: 0, share: 0, save: 0 });
 
-      // Perubahan insight seperti follower: bandingkan nilai awal vs akhir dalam rentang
+      // Calculate metric changes (first vs last post)
       const sortedByDate = singleReports
         .slice()
         .filter(r => r.post_date)
@@ -874,14 +1023,14 @@ router.get('/print/export', async (req, res) => {
         save: pickStartEnd('save_count')
       };
 
-      // Calculate follower change dari tabel followers (tiktok only)
+      // Calculate follower change
       try {
         const [followerData] = await db.query(`
           SELECT follower_count, recorded_date
           FROM followers
           WHERE platform = 'tiktok' AND recorded_date BETWEEN ? AND ?
           ORDER BY recorded_date ASC
-        `, [start_date, end_date]);
+        `, [actualStartDate, actualEndDate]);
 
         if (followerData.length >= 1) {
           const startFollower = Number(followerData[0].follower_count);
@@ -894,13 +1043,14 @@ router.get('/print/export', async (req, res) => {
         console.error('Error calculating follower change:', followerError);
       }
 
-      // Hitung rata-rata ER per posting menggunakan formula aktif
+      // Calculate average ER
       const [formulas] = await db.query(
         "SELECT * FROM formula_settings WHERE is_active = TRUE ORDER BY id DESC LIMIT 1"
       );
       const currentFormula = formulas.length > 0 ? formulas[0] : {
         engagement_formula: '(like + comment + share + save) / view * 100'
       };
+      
       let erSum = 0;
       let erCount = 0;
 
@@ -913,7 +1063,6 @@ router.get('/print/export', async (req, res) => {
           formula = formula.replace(/share/g, r.share_count || 0);
           formula = formula.replace(/save/g, r.save_count || 0);
 
-          // Get follower count jika formula menggunakan follower
           if (formula.includes('follower')) {
             const followerCount = await getLatestFollowerCount(r.platform);
             formula = formula.replace(/follower/g, followerCount);
@@ -924,7 +1073,7 @@ router.get('/print/export', async (req, res) => {
           erSum += erNum;
           erCount += 1;
         } catch (e) {
-          // skip error
+          console.error('ER calculation error:', e);
         }
       }
 
@@ -932,17 +1081,202 @@ router.get('/print/export', async (req, res) => {
       averageER = erCount > 0 ? (erSum / erCount) : 0;
     }
 
-    // Set header untuk Excel jika dipilih
+    // Set header for Excel if selected
     if (exportFormat === 'excel') {
-      res.setHeader('Content-Type', 'application/vnd.ms-excel');
-      res.setHeader('Content-Disposition', `attachment; filename="report_${start_date}_to_${end_date}.xls"`);
+      // Create a new workbook
+      const workbook = new ExcelJS.Workbook();
+
+      // Get current formula for ER calculation
+      const [formulas] = await db.query(
+        "SELECT * FROM formula_settings WHERE is_active = TRUE ORDER BY id DESC LIMIT 1"
+      );
+      const currentFormula = formulas.length > 0 ? formulas[0] : {
+        engagement_formula: '(like + comment + share + save) / view * 100'
+      };
+
+      // WORKSHEET 1: Posts Data
+      const postsSheet = workbook.addWorksheet('Posts');
+      postsSheet.columns = [
+        { header: 'Platform', key: 'platform', width: 15 },
+        { header: 'Judul', key: 'judul', width: 30 },
+        { header: 'Post URL', key: 'post_url', width: 30 },
+        { header: 'Post Date', key: 'post_date', width: 15 },
+        { header: 'View', key: 'view_count', width: 10 },
+        { header: 'Like', key: 'like_count', width: 10 },
+        { header: 'Comment', key: 'comment_count', width: 10 },
+        { header: 'Share', key: 'share_count', width: 10 },
+        { header: 'Save', key: 'save_count', width: 10 },
+        { header: 'Engagement Rate', key: 'engagement_rate', width: 15 }
+      ];
+
+      // Add posts data with ER calculation
+      for (const report of reports) {
+        let engagementRate = 0;
+        try {
+          let formula = currentFormula.engagement_formula;
+          formula = formula.replace(/like/g, report.like_count || 0);
+          formula = formula.replace(/comment/g, report.comment_count || 0);
+          formula = formula.replace(/view/g, report.view_count || 0);
+          formula = formula.replace(/share/g, report.share_count || 0);
+          formula = formula.replace(/save/g, report.save_count || 0);
+
+          if (formula.includes('follower')) {
+            const followerCount = await getLatestFollowerCount(report.platform);
+            formula = formula.replace(/follower/g, followerCount);
+          }
+
+          const erVal = eval(formula);
+          engagementRate = isNaN(erVal) ? 0 : Number(erVal);
+        } catch (e) {
+          console.error('ER calculation error for Excel:', e);
+          engagementRate = 0;
+        }
+
+        postsSheet.addRow({
+          platform: report.platform,
+          judul: report.judul,
+          post_url: report.post_url,
+          post_date: report.post_date,
+          view_count: report.view_count || 0,
+          like_count: report.like_count || 0,
+          comment_count: report.comment_count || 0,
+          share_count: report.share_count || 0,
+          save_count: report.save_count || 0,
+          engagement_rate: engagementRate
+        });
+      }
+
+      // Style posts sheet
+      postsSheet.getRow(1).font = { bold: true };
+      postsSheet.getRow(1).alignment = { horizontal: 'center' };
+      postsSheet.autoFilter = { from: 'A1', to: 'J1' };
+      ['E', 'F', 'G', 'H', 'I'].forEach(col => {
+        postsSheet.getColumn(col).numFmt = '#,##0';
+      });
+      postsSheet.getColumn('J').numFmt = '0.00';
+
+      // WORKSHEET 2: Summary Statistics
+      const summarySheet = workbook.addWorksheet('Summary');
+      summarySheet.columns = [
+        { header: 'Metric', key: 'metric', width: 20 },
+        { header: 'Value', key: 'value', width: 15 },
+        { header: 'Change', key: 'change', width: 15 },
+        { header: 'Change %', key: 'change_pct', width: 15 }
+      ];
+
+      // Add summary data
+      summarySheet.addRow({ metric: 'Total Posts', value: totalPostingan });
+      summarySheet.addRow({ metric: 'Total Views', value: totals.view });
+      summarySheet.addRow({ metric: 'Total Likes', value: totals.like });
+      summarySheet.addRow({ metric: 'Total Comments', value: totals.comment });
+      summarySheet.addRow({ metric: 'Total Shares', value: totals.share });
+      summarySheet.addRow({ metric: 'Total Saves', value: totals.save });
+      summarySheet.addRow({ metric: 'Average ER', value: averageER });
+
+      // Add follower data
+      if (followerChange.start !== null) {
+        summarySheet.addRow({ metric: 'Follower Start', value: followerChange.start });
+        summarySheet.addRow({ metric: 'Follower End', value: followerChange.end });
+        summarySheet.addRow({ metric: 'Follower Change', value: followerChange.diff, change_pct: followerChange.pct });
+      }
+
+      // Add metric changes
+      if (metricChange.view.start !== null) {
+        summarySheet.addRow({ metric: 'View Change', value: metricChange.view.diff, change_pct: metricChange.view.pct });
+        summarySheet.addRow({ metric: 'Like Change', value: metricChange.like.diff, change_pct: metricChange.like.pct });
+        summarySheet.addRow({ metric: 'Comment Change', value: metricChange.comment.diff, change_pct: metricChange.comment.pct });
+        summarySheet.addRow({ metric: 'Share Change', value: metricChange.share.diff, change_pct: metricChange.share.pct });
+        summarySheet.addRow({ metric: 'Save Change', value: metricChange.save.diff, change_pct: metricChange.save.pct });
+      }
+
+      // Style summary sheet
+      summarySheet.getRow(1).font = { bold: true };
+      summarySheet.getRow(1).alignment = { horizontal: 'center' };
+      summarySheet.getColumn('B').numFmt = '#,##0';
+      summarySheet.getColumn('C').numFmt = '#,##0';
+      summarySheet.getColumn('D').numFmt = '0.00%';
+
+      // WORKSHEET 3: Monthly Data (for comparison mode)
+      if (isCompare && monthlyData.length > 0) {
+        const monthlySheet = workbook.addWorksheet('Monthly Analysis');
+        monthlySheet.columns = [
+          { header: 'Month', key: 'month', width: 20 },
+          { header: 'Posts', key: 'posts', width: 10 },
+          { header: 'Views', key: 'views', width: 10 },
+          { header: 'Likes', key: 'likes', width: 10 },
+          { header: 'Comments', key: 'comments', width: 10 },
+          { header: 'Shares', key: 'shares', width: 10 },
+          { header: 'Saves', key: 'saves', width: 10 },
+          { header: 'Followers', key: 'followers', width: 12 },
+          { header: 'Avg ER', key: 'avg_er', width: 10 }
+        ];
+
+        monthlyData.forEach(month => {
+          monthlySheet.addRow({
+            month: month.monthName,
+            posts: month.postCount,
+            views: month.totals.view,
+            likes: month.totals.like,
+            comments: month.totals.comment,
+            shares: month.totals.share,
+            saves: month.totals.save,
+            followers: month.followerCount,
+            avg_er: month.averageER
+          });
+        });
+
+        // Style monthly sheet
+        monthlySheet.getRow(1).font = { bold: true };
+        monthlySheet.getRow(1).alignment = { horizontal: 'center' };
+        ['B', 'C', 'D', 'E', 'F', 'G', 'H'].forEach(col => {
+          monthlySheet.getColumn(col).numFmt = '#,##0';
+        });
+        monthlySheet.getColumn('I').numFmt = '0.00';
+      }
+
+      // WORKSHEET 4: Report Info
+      const infoSheet = workbook.addWorksheet('Report Info');
+      infoSheet.columns = [
+        { header: 'Information', key: 'info', width: 20 },
+        { header: 'Value', key: 'value', width: 30 }
+      ];
+
+      infoSheet.addRow({ info: 'Report Type', value: isCompare ? 'Comparison' : 'Normal' });
+      infoSheet.addRow({ info: 'Start Date', value: actualStartDate });
+      infoSheet.addRow({ info: 'End Date', value: actualEndDate });
+      infoSheet.addRow({ info: 'Generated Date', value: new Date().toLocaleDateString('id-ID') });
+      infoSheet.addRow({ info: 'Formula Used', value: currentFormula.engagement_formula });
+
+      if (isCompare) {
+        infoSheet.addRow({ info: 'Months Compared', value: months });
+        infoSheet.addRow({ info: 'End Month', value: end_month });
+      }
+
+      // Style info sheet
+      infoSheet.getRow(1).font = { bold: true };
+      infoSheet.getRow(1).alignment = { horizontal: 'center' };
+
+      // Write to buffer and send as response
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="report_${actualStartDate}_to_${actualEndDate}.xlsx"`);
+
+      await workbook.xlsx.write(res);
+      res.end();
+      return;
     }
+
+    console.log('🎯 Final render data:');
+    console.log('- actualStartDate:', actualStartDate);
+    console.log('- actualEndDate:', actualEndDate);
+    console.log('- totalPostingan:', totalPostingan);
+    console.log('- isCompare:', isCompare);
+    console.log('- monthlyData length:', monthlyData.length);
 
     res.render('reports/print_export', {
       title: 'Cetak Report',
       reports,
-      start_date,
-      end_date,
+      start_date: actualStartDate,
+      end_date: actualEndDate,
       includeThumbs,
       formatDate,
       insights,
@@ -958,7 +1292,7 @@ router.get('/print/export', async (req, res) => {
       months
     });
   } catch (err) {
-    console.error('Error GET /print/export:', err);
+    console.error('❌ Error in /print/export:', err);
     res.status(500).send(err.message);
   }
 });

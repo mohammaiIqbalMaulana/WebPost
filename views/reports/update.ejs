@@ -10,13 +10,27 @@
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
 
+<!-- Follower Info Section -->
+<div class="card mb-3" id="followerInfoCard">
+    <div class="card-body">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-people-fill text-primary me-2 fs-5"></i>
+            <div class="flex-grow-1">
+                <div id="followerInfoText" class="fw-semibold text-muted">
+                    <span class="spinner-border spinner-border-sm me-2"></span>Memuat info follower...
+                </div>
+            </div>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="openFollowerModal()">
+                <i class="bi bi-pencil-square me-1"></i> Update
+            </button>
+        </div>
+    </div>
+</div>
+
 <div class="d-flex gap-2 mb-3">
     <a href="/reports" class="btn btn-secondary" onclick="clearDraftOnExit()">
         <i class="bi bi-arrow-left me-1"></i>
     </a>
-    <button type="button" class="btn btn-outline-primary" onclick="openFollowerModal()">
-        <i class="bi bi-people-fill me-1"></i> Update Follower
-    </button>
 </div>
 
 <form method="POST" action="/reports/update" onsubmit="return validateForm()" id="updateForm">
@@ -47,7 +61,6 @@
                         <i class="bi bi-bookmark-fill text-secondary me-1"></i>
                         Save
                     </th>
-                    <!-- Kolom followers dihapus, update follower dilakukan terpisah -->
                 </tr>
             </thead>
             <tbody>
@@ -119,7 +132,6 @@
                                        data-field="save"
                                        title="Masukkan jumlah save terbaru">
                             </td>
-                            <!-- Kolom followers dihapus per requirement -->
                         </tr>
                     <% }) %>
                 <% } else { %>
@@ -150,59 +162,179 @@
 </form>
 
 <script>
+// Load follower info on page load
+async function loadFollowerInfo() {
+    try {
+        const response = await fetch('/reports/get-follower-info/tiktok');
+        const data = await response.json();
+        
+        const infoElement = document.getElementById('followerInfoText');
+        
+        if (data.success && data.hasData) {
+            infoElement.innerHTML = `
+                <span class="text-dark">Follower ${data.platform}:</span> 
+                <span class="fw-bold text-primary">${data.follower_count_formatted}</span> 
+                <span class="text-muted">(Update: ${data.update_date} untuk periode ${data.period})</span>
+            `;
+            infoElement.className = 'fw-semibold';
+        } else {
+            infoElement.innerHTML = `
+                <span class="text-warning">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    Belum ada data follower - Klik tombol Update untuk menambahkan
+                </span>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading follower info:', error);
+        document.getElementById('followerInfoText').innerHTML = `
+            <span class="text-danger">
+                <i class="bi bi-x-circle me-1"></i>
+                Gagal memuat info follower
+            </span>
+        `;
+    }
+}
 
-function openFollowerModal() {
+async function openFollowerModal() {
+    let currentData = null;
+    
+    try {
+        const response = await fetch('/reports/get-follower-info/tiktok');
+        const data = await response.json();
+        if (data.success && data.hasData) {
+            currentData = data;
+        }
+    } catch (error) {
+        console.error('Error fetching current follower data:', error);
+    }
+
+    // Default ke bulan ini
+    const today = new Date();
+    const defaultDate = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-01';
+    
+    const currentInfo = currentData ? `
+        <div class="alert alert-info mb-3">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong>Data Saat Ini:</strong> ${currentData.follower_count_formatted} followers untuk periode ${currentData.period}
+        </div>
+    ` : `
+        <div class="alert alert-warning mb-3">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            <strong>Belum ada data follower</strong>
+        </div>
+    `;
+
     const html = `
         <div class="text-start">
+            ${currentInfo}
             <div class="mb-3">
                 <label class="form-label">Platform</label>
-                <select id="f_platform" class="form-select">
+                <select id="f_platform" class="form-select" disabled>
                     <option value="tiktok">TikTok</option>
                 </select>
+                <div class="form-text">Saat ini hanya mendukung TikTok</div>
             </div>
             <div class="mb-3">
-                <label class="form-label">Follower</label>
-                <input type="number" id="f_count" class="form-control" min="0" placeholder="Masukkan jumlah follower">
+                <label class="form-label">Jumlah Followers</label>
+                <input type="number" id="f_count" class="form-control" min="0" 
+                       placeholder="Masukkan jumlah follower"
+                       value="${currentData ? currentData.follower_count : ''}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Periode Bulan</label>
+                <input type="date" id="f_date" class="form-control" 
+                       value="${currentData ? currentData.recorded_date : defaultDate}">
+                <div class="form-text">Pilih tanggal untuk mewakili periode bulan data follower ini</div>
             </div>
         </div>`;
+
     Swal.fire({
-        title: 'Update Follower',
+        title: '<i class="bi bi-people-fill me-2"></i>Update Data Follower',
         html,
+        width: '500px',
         showCancelButton: true,
-        confirmButtonText: 'Simpan',
+        confirmButtonText: '<i class="bi bi-save me-1"></i> Simpan',
         cancelButtonText: 'Batal',
+        confirmButtonColor: '#0d6efd',
         preConfirm: () => {
             const platform = document.getElementById('f_platform').value;
             const count = document.getElementById('f_count').value;
-            if (count === '' || Number(count) < 0) {
-                Swal.showValidationMessage('Follower harus angka >= 0');
+            const date = document.getElementById('f_date').value;
+            
+            if (!count || count === '' || Number(count) < 0) {
+                Swal.showValidationMessage('Jumlah follower harus diisi dan >= 0');
                 return false;
             }
-            return { platform, count: Number(count) };
+            
+            if (!date) {
+                Swal.showValidationMessage('Periode bulan harus dipilih');
+                return false;
+            }
+            
+            return { platform, count: Number(count), recorded_date: date };
         }
-    }).then((res) => {
-        if (res.isConfirmed) {
-            fetch('/reports/update-follower', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ platform: res.value.platform, follower_count: res.value.count })
-            })
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Show loading
+            Swal.fire({
+                title: 'Menyimpan...',
+                html: 'Sedang memproses data follower',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                willOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+fetch('/reports/update-follower', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        platform: result.value.platform,
+        follower_count: result.value.count,
+        recorded_date: result.value.recorded_date
+    })
+})
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
                     Swal.fire({
                         icon: 'success',
-                        title: 'Berhasil',
-                        text: 'Data follower tersimpan',
-                        timer: 1500,
-                        showConfirmButton: false
+                        title: 'Berhasil!',
+                        html: `
+                            <div class="text-start">
+                                <p><strong>Data follower telah ${data.data.action === 'created' ? 'disimpan' : 'diperbarui'}</strong></p>
+                                <hr>
+                                <ul class="list-unstyled mb-0">
+                                    <li><i class="bi bi-check-circle text-success me-2"></i>Platform: ${data.data.platform}</li>
+                                    <li><i class="bi bi-check-circle text-success me-2"></i>Followers: ${data.data.follower_count}</li>
+                                    <li><i class="bi bi-check-circle text-success me-2"></i>Periode: ${data.data.period}</li>
+                                    <li><i class="bi bi-check-circle text-success me-2"></i>Update: ${data.data.update_date}</li>
+                                </ul>
+                            </div>
+                        `,
+                        showConfirmButton: true,
+                        confirmButtonText: 'OK'
+                    }).then(() => {
+                        // Reload follower info
+                        loadFollowerInfo();
                     });
                 } else {
-                    Swal.fire({ icon: 'error', title: 'Gagal', text: data.message || 'Gagal menyimpan follower' });
+                    Swal.fire({ 
+                        icon: 'error', 
+                        title: 'Gagal!', 
+                        text: data.message || 'Gagal menyimpan data follower' 
+                    });
                 }
             })
-            .catch(() => {
-                Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan jaringan' });
+            .catch((error) => {
+                console.error('Error:', error);
+                Swal.fire({ 
+                    icon: 'error', 
+                    title: 'Error!', 
+                    text: 'Terjadi kesalahan jaringan' 
+                });
             });
         }
     });
@@ -233,7 +365,6 @@ function validateForm() {
             validReports++;
             totalReports++;
         } else {
-            // Jika ada field yang kosong, hitung sebagai report yang tidak valid
             totalReports++;
         }
     }
@@ -284,6 +415,7 @@ function validateForm() {
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
+    loadFollowerInfo();
     loadTemporaryData();
     
     const inputs = document.querySelectorAll('input[type="number"]');

@@ -14,6 +14,21 @@
             h3, h4, h5 { page-break-after: avoid; }
             .thumb { max-width: 80px; max-height: 80px; }
             .alert { background: #f8f9fa !important; border: 1px solid #dee2e6 !important; }
+            
+            /* Page break rules for better PDF layout */
+            .page-break-before { page-break-before: always; }
+            .page-break-after { page-break-after: always; }
+            .page-break-inside-avoid { page-break-inside: avoid; }
+            
+            /* Summary section always on new page */
+            .summary-section { page-break-before: always; }
+            
+            /* Monthly table sections - each month on new page */
+            .monthly-table-section { page-break-before: always; }
+            .monthly-table-section:first-child { page-break-before: auto; }
+            
+            /* Normal mode - table immediately after title */
+            .normal-table-section { page-break-after: avoid; }
         }
         @media screen {
             .thumb {
@@ -223,7 +238,7 @@
         <!-- Detail Posts per Month -->
         <% monthlyData.forEach((month, monthIndex) => { %>
             <% if (month.hasPosts) { %>
-                <div class="mb-5">
+                <div class="mb-5 monthly-table-section">
                     <div class="d-flex align-items-center justify-content-between mb-3">
                         <h4 class="mb-0">
                             <span class="badge bg-success me-2"><%= monthIndex + 1 %></span>
@@ -344,7 +359,7 @@
         </div>
 
         <% if (reports && reports.length > 0) { %>
-            <div class="table-responsive">
+            <div class="table-responsive normal-table-section">
         <table class="table table-bordered table-hover align-middle">
             <thead class="table-light">
                 <tr>
@@ -444,7 +459,7 @@
     <% } %>
 
     <!-- Summary Statistics -->
-    <div class="mt-5">
+    <div class="mt-5 summary-section">
         <% if (isCompare) { %>
             <h4 class="mb-4">📊 Ringkasan Perbandingan Keseluruhan</h4>
         <% } else { %>

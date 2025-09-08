@@ -658,9 +658,6 @@
                                 <i class="bi bi-graph-up-arrow me-2"></i>
                                 <% if (isCompare) { %>
                                     Perbandingan: Bulan Terakhir vs Rata-rata Bulan Lainnya
-                                    <small class="ms-2">
-                                        (<%= monthlyData && monthlyData.length > 0 ? monthlyData[monthlyData.length - 1].monthName : 'Bulan Terakhir' %> sebagai referensi)
-                                    </small>
                                 <% } else { %>
                                     Perubahan Insight (Awal → Akhir)
                                 <% } %>
@@ -674,7 +671,7 @@
                                         <i class="bi bi-info-circle me-2"></i>
                                         <div class="small">
                                             <strong>Metode Perbandingan:</strong> 
-                                            Data dari <strong><%= monthlyData && monthlyData.length > 0 ? monthlyData[monthlyData.length - 1].monthName : 'bulan terakhir' %></strong> 
+                                            Data yang ada pada bulan terakhir
                                             dibandingkan dengan rata-rata dari 
                                             <strong><%= monthlyData ? monthlyData.length - 1 : 0 %> bulan sebelumnya</strong>
                                         </div>

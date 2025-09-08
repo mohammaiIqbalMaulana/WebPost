@@ -87,7 +87,58 @@
             border-color: #ffc107;
             background: linear-gradient(135deg, #fffdf5 0%, #fff3cd 100%);
         }
+
+        /* Tambahkan di bagian @media print dalam existing CSS */
+@media print {
+    /* Existing print styles... */
+    
+    /* Chart specific print styles */
+    .chart-container {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        margin-bottom: 1rem;
+    }
+    
+    canvas {
+        max-width: 100% !important;
+        height: auto !important;
+        background: white !important;
+    }
+    
+    .card {
+        border: 1px solid #dee2e6 !important;
+        box-shadow: none !important;
+    }
+    
+    .card-header {
+        background-color: #f8f9fa !important;
+        color: #212529 !important;
+        border-bottom: 1px solid #dee2e6 !important;
+        print-color-adjust: exact;
+    }
+    
+    /* Force chart colors in print */
+    .chart-container * {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+}
+
+/* Screen-specific improvements */
+@media screen {
+    .chart-container {
+        min-height: 300px;
+    }
+    
+    .card-header.bg-primary,
+    .card-header.bg-info,
+    .card-header.bg-secondary {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+}
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script>
         window.addEventListener('load', () => {
             // Fungsi untuk mengatur bar progress
@@ -458,299 +509,189 @@
         <% } %>
     <% } %>
 
-    <!-- Summary Statistics -->
-    <div class="mt-5 summary-section">
-        <% if (isCompare) { %>
-            <h4 class="mb-4">📊 Ringkasan Perbandingan Keseluruhan</h4>
-        <% } else { %>
-            <h4 class="mb-4">📊 Ringkasan Statistik</h4>
-        <% } %>
+<!-- Chart Visualization Section -->
+<div class="mt-5 summary-section">
+    <% if (isCompare) { %>
+        <h4 class="mb-4">📊 Visualisasi Perbandingan Keseluruhan</h4>
+    <% } else { %>
+        <h4 class="mb-4">📊 Visualisasi Tren Data</h4>
+    <% } %>
 
-        <div class="row g-4">
-            <!-- Total Insights -->
-            <div class="col-lg-6">
-                <div class="card summary-card h-100">
-                    <div class="card-header bg-primary text-white">
-                        <h6 class="mb-0">
-                            <i class="bi bi-graph-up me-2"></i>
-                            Total Insight
-                        </h6>
+    <div class="row g-4">
+        <!-- Main Metrics Chart -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0">
+                        <i class="bi bi-graph-up me-2"></i>
+                        <% if (isCompare) { %>
+                            Tren Perbandingan Metrics per Bulan
+                        <% } else { %>
+                            Tren Metrics per Post
+                        <% } %>
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="position: relative; height: 400px;">
+                        <canvas id="metricsChart"></canvas>
                     </div>
-                    <div class="card-body">
-                        <div class="row g-3">
+                    
+                    <!-- Chart Legend Info -->
+                    <div class="mt-3">
+                        <div class="row text-center">
                             <% if (Array.isArray(insights) ? insights.includes('view') : true) { %>
-                                <div class="col-6">
-                                    <div class="text-center p-2 border rounded bg-light">
-                                        <div class="text-primary fw-bold fs-4"><%= (totals?.view || 0).toLocaleString() %></div>
-                                        <div class="small text-muted">👁️ Total View</div>
+                                <div class="col">
+                                    <div class="small">
+                                        <div class="d-inline-block bg-primary" style="width: 12px; height: 3px; margin-right: 5px;"></div>
+                                        View
                                     </div>
                                 </div>
                             <% } %>
                             <% if (Array.isArray(insights) ? insights.includes('like') : true) { %>
-                                <div class="col-6">
-                                    <div class="text-center p-2 border rounded bg-light">
-                                        <div class="text-danger fw-bold fs-4"><%= (totals?.like || 0).toLocaleString() %></div>
-                                        <div class="small text-muted">❤️ Total Like</div>
+                                <div class="col">
+                                    <div class="small">
+                                        <div class="d-inline-block bg-danger" style="width: 12px; height: 3px; margin-right: 5px;"></div>
+                                        Like
                                     </div>
                                 </div>
                             <% } %>
                             <% if (Array.isArray(insights) ? insights.includes('comment') : true) { %>
-                                <div class="col-6">
-                                    <div class="text-center p-2 border rounded bg-light">
-                                        <div class="text-success fw-bold fs-4"><%= (totals?.comment || 0).toLocaleString() %></div>
-                                        <div class="small text-muted">💬 Total Comment</div>
+                                <div class="col">
+                                    <div class="small">
+                                        <div class="d-inline-block bg-success" style="width: 12px; height: 3px; margin-right: 5px;"></div>
+                                        Comment
                                     </div>
                                 </div>
                             <% } %>
                             <% if (Array.isArray(insights) ? insights.includes('share') : true) { %>
-                                <div class="col-6">
-                                    <div class="text-center p-2 border rounded bg-light">
-                                        <div class="text-info fw-bold fs-4"><%= (totals?.share || 0).toLocaleString() %></div>
-                                        <div class="small text-muted">🔄 Total Share</div>
+                                <div class="col">
+                                    <div class="small">
+                                        <div class="d-inline-block bg-info" style="width: 12px; height: 3px; margin-right: 5px;"></div>
+                                        Share
                                     </div>
                                 </div>
                             <% } %>
                             <% if (Array.isArray(insights) ? insights.includes('save') : true) { %>
-                                <div class="col-6">
-                                    <div class="text-center p-2 border rounded bg-light">
-                                        <div class="text-warning fw-bold fs-4"><%= (totals?.save || 0).toLocaleString() %></div>
-                                        <div class="small text-muted">🔖 Total Save</div>
+                                <div class="col">
+                                    <div class="small">
+                                        <div class="d-inline-block bg-warning" style="width: 12px; height: 3px; margin-right: 5px;"></div>
+                                        Save
                                     </div>
                                 </div>
                             <% } %>
-                        </div>
-                        
-                        <hr class="my-3">
-                        
-                        <div class="row">
-                            <div class="col-6">
-                                <div class="text-center">
-                                    <div class="display-6 fw-bold text-dark"><%= (typeof totalPostingan === 'number' ? totalPostingan : (reports?.length || 0)) %></div>
-                                    <div class="small text-muted">Total Postingan</div>
+                            <% if (Array.isArray(insights) ? insights.includes('er') : true) { %>
+                                <div class="col">
+                                    <div class="small">
+                                        <div class="d-inline-block" style="width: 12px; height: 3px; margin-right: 5px; background-color: #6f42c1;"></div>
+                                        ER (%)
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="text-center">
-                                    <div class="display-6 fw-bold text-primary"><%= (averageER || 0).toFixed(2) %>%</div>
-                                    <div class="small text-muted">Rata-rata ER</div>
-                                </div>
-                            </div>
+                            <% } %>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Follower Change -->
-            <div class="col-lg-6">
-                <div class="card summary-card h-100">
-                    <div class="card-header bg-info text-white">
-                        <h6 class="mb-0">
-                            <i class="bi bi-people me-2"></i>
-                            <% if (isCompare) { %>
-                                Perbandingan Follower
-                            <% } else { %>
-                                Perubahan Follower
-                            <% } %>
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <%
-                        const hasFollower = followerChange && followerChange.start !== null && followerChange.end !== null;
-                        const diff = hasFollower ? followerChange.diff : 0;
-                        const pct = hasFollower ? followerChange.pct : null;
-                        const trendUp = hasFollower ? diff >= 0 : null;
-                        const trendClass = trendUp ? 'text-success' : 'text-danger';
-                        const badgeClass = trendUp ? 'bg-success' : 'bg-danger';
-                        %>
-
-                        <% if (hasFollower) { %>
-                        <div class="text-center mb-3">
-                            <div class="display-5 fw-bold <%= trendClass %>">
-                            <%= followerChange.end.toLocaleString() %>
-                            </div>
-                            <div class="small text-muted mb-2">
-                            <% if (isCompare) { %>
-                                Follower Bulan Terakhir
-                            <% } else { %>
-                                Follower Akhir
-                            <% } %>
-                            </div>
-                            <span class="badge <%= badgeClass %> px-3 py-2">
-                            <%= (diff >= 0 ? '+' : '') + diff.toLocaleString() %>
-                            <% if (pct !== null) { %>
-                                (<%= (pct >= 0 ? '+' : '') + pct.toFixed(2) %>%)
-                            <% } %>
-                            </span>
-                        </div>
-
-                        <% const progressWidth = Math.min(Math.abs(pct || 0), 100); %>
-                        <div class="progress mb-3" style="height: 12px;">
-                            <div class="progress-bar" 
-                                role="progressbar" 
-                                data-follower-progress="<%= progressWidth %>"
-                                data-change="<%= diff %>"
-                                style="width: 0%"
-                                aria-valuenow="<%= Math.abs(pct || 0) %>" 
-                                aria-valuemin="0" 
-                                aria-valuemax="100">
-                            </div>
-                        </div>
-
-                        <div class="row text-center">
-                            <div class="col-6">
-                            <div class="border rounded p-2 bg-light">
-                                <div class="fw-semibold"><%= followerChange.start.toLocaleString() %></div>
-                                <div class="small text-muted">
-                                <% if (isCompare) { %>
-                                    Rata-rata Lainnya
-                                <% } else { %>
-                                    Awal
-                                <% } %>
-                                </div>
-                            </div>
-                            </div>
-                            <div class="col-6">
-                            <div class="border rounded p-2 bg-light">
-                                <div class="fw-semibold <%= trendClass %>"><%= followerChange.end.toLocaleString() %></div>
-                                <div class="small text-muted">
-                                <% if (isCompare) { %>
-                                    Bulan Terakhir
-                                <% } else { %>
-                                    Akhir
-                                <% } %>
-                                </div>
-                            </div>
-                            </div>
-                        </div>
-
-                        <% if (isCompare) { %>
-                            <div class="mt-3">
-                            <div class="alert alert-light border small mb-0">
-                                <i class="bi bi-info-circle me-1"></i>
-                                <strong>Catatan:</strong> Follower bulan terakhir dibandingkan dengan rata-rata follower dari bulan-bulan sebelumnya yang memiliki data
-                            </div>
-                            </div>
-                        <% } %>
-
-                        <% } else { %>
-                        <div class="text-center py-4">
-                            <i class="bi bi-exclamation-circle text-warning fs-1 mb-3"></i>
-                            <div class="text-muted">
-                            <strong>Data Follower Tidak Tersedia</strong>
-                            <div class="small mt-1">
-                                Tidak ada data follower yang memadai<br>
-                                untuk periode ini
-                            </div>
-                            </div>
-                        </div>
-                        <% } %>
+        <!-- Follower Chart (only for comparison mode with follower data) -->
+        <% if (isCompare && followerChartData) { %>
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">
+                        <i class="bi bi-people me-2"></i>
+                        Tren Pertumbuhan Follower
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="position: relative; height: 300px;">
+                        <canvas id="followerChart"></canvas>
                     </div>
                 </div>
             </div>
-
-        <!-- Metric Changes (Only show if there are changes to display) -->
-        <% if (metricChange && (isCompare || Object.values(metricChange).some(m => m && m.start !== null))) { %>
-            <div class="row mt-4">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header bg-secondary text-white">
-                            <h6 class="mb-0">
-                                <i class="bi bi-graph-up-arrow me-2"></i>
-                                <% if (isCompare) { %>
-                                    Perbandingan: Bulan Terakhir vs Rata-rata Bulan Lainnya
-                                <% } else { %>
-                                    Perubahan Insight (Awal → Akhir)
-                                <% } %>
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            <% if (isCompare) { %>
-                                <!-- Comparison Mode - Show reference explanation -->
-                                <div class="alert alert-info mb-3">
-                                    <div class="d-flex align-items-center">
-                                        <i class="bi bi-info-circle me-2"></i>
-                                        <div class="small">
-                                            <strong>Metode Perbandingan:</strong> 
-                                            Data yang ada pada bulan terakhir
-                                            dibandingkan dengan rata-rata dari 
-                                            <strong><%= monthlyData ? monthlyData.length - 1 : 0 %> bulan sebelumnya</strong>
-                                        </div>
-                                    </div>
-                                </div>
-                            <% } %>
-                            
-                            <div class="row g-3">
-                                <% const items = [
-                                    { key: 'view', label: 'View', icon: '👁️', color: 'primary' },
-                                    { key: 'like', label: 'Like', icon: '❤️', color: 'danger' },
-                                    { key: 'comment', label: 'Comment', icon: '💬', color: 'success' },
-                                    { key: 'share', label: 'Share', icon: '🔄', color: 'info' },
-                                    { key: 'save', label: 'Save', icon: '🔖', color: 'warning' }
-                                ]; %>
-                                <% items.forEach(it => {
-                                    const show = Array.isArray(insights) ? insights.includes(it.key) : true;
-                                    const t = metricChange && metricChange[it.key];
-                                %>
-                                <% if (show && t && t.start !== null) { %>
-                                    <div class="col-lg-4 col-md-6">
-                                    <div class="border rounded p-3 h-100 bg-light">
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <div class="fw-semibold">
-                                            <%= it.icon %> <%= it.label %>
-                                        </div>
-                                        <% const isUp = t.diff !== null ? t.diff >= 0 : null; %>
-                                        <span class="badge <%= t.diff === 0 ? 'bg-warning' : (isUp ? 'bg-success' : 'bg-danger') %> rounded-pill">
-                                            <%= t.diff === 0 ? '0' : ((isUp ? '+' : '') + t.diff.toLocaleString()) %>
-                                        </span>
-                                        </div>
-                                        
-                                        <div class="small text-muted mb-2">
-                                        <% if (isCompare) { %>
-                                            <div>Bulan Terakhir: <strong><%= (t.end !== null ? t.end.toLocaleString() : '0') %></strong></div>
-                                            <div>Rata-rata Lainnya: <strong><%= (t.start !== null ? t.start.toLocaleString() : '0') %></strong></div>
-                                        <% } else { %>
-                                            <div>Akhir: <strong><%= (t.end !== null ? t.end.toLocaleString() : '0') %></strong></div>
-                                            <div>Awal: <strong><%= (t.start !== null ? t.start.toLocaleString() : '0') %></strong></div>
-                                        <% } %>
-                                        </div>
-                                        
-                                        <div class="progress mb-2" style="height: 8px;">
-                                        <% 
-                                            const barValue = t.diff !== null ? t.diff : 0;
-                                            const maxValue = Math.max(Math.abs(t.start || 0), Math.abs(t.end || 0));
-                                            let progressPct = maxValue > 0 ? (Math.abs(barValue) / maxValue) * 100 : 0;
-                                            progressPct = Math.min(progressPct, 100);
-                                        %>
-                                        <div class="progress-bar" 
-                                            role="progressbar" 
-                                            data-metric-progress="<%= progressPct %>"
-                                            data-change="<%= barValue %>"
-                                            style="width: 0%"
-                                            aria-valuenow="<%= progressPct %>" 
-                                            aria-valuemin="0" 
-                                            aria-valuemax="100">
-                                        </div>
-                                        </div>
-                                        
-                                        <div class="text-end">
-                                        <% if (t.diff === 0) { %>
-                                            <span class="badge bg-warning">Tidak ada perubahan</span>
-                                        <% } else { %>
-                                            <span class="badge text-bg-light border <%= isUp ? 'text-success' : 'text-danger' %>">
-                                            <%= (t.pct !== null ? (t.pct >= 0 ? '+' : '') + t.pct.toFixed(2) + '%' : '-') %>
-                                            </span>
-                                        <% } %>
-                                        </div>
-                                    </div>
-                                    </div>
-                                <% } %>
-                                <% }) %>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        </div>
         <% } %>
+
+        <!-- Summary Statistics Cards (Kompak) -->
+        <div class="<%= (isCompare && followerChartData) ? 'col-lg-6' : 'col-12' %>">
+            <div class="card h-100">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="mb-0">
+                        <i class="bi bi-list-ul me-2"></i>
+                        Ringkasan Statistik
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2 text-center">
+                        <div class="col-4">
+                            <div class="bg-light p-2 rounded">
+                                <div class="fw-bold text-primary"><%= totalPostingan %></div>
+                                <div class="small text-muted">Posts</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="bg-light p-2 rounded">
+                                <div class="fw-bold text-success"><%= (averageER || 0).toFixed(2) %>%</div>
+                                <div class="small text-muted">Avg ER</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="bg-light p-2 rounded">
+                                <div class="fw-bold text-info"><%= (totals?.view || 0).toLocaleString() %></div>
+                                <div class="small text-muted">Total View</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-3">
+                    
+                    <div class="row g-2 text-center">
+                        <div class="col-3">
+                            <div class="bg-light p-2 rounded">
+                                <div class="fw-bold text-danger small"><%= (totals?.like || 0).toLocaleString() %></div>
+                                <div class="small text-muted">Like</div>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="bg-light p-2 rounded">
+                                <div class="fw-bold text-success small"><%= (totals?.comment || 0).toLocaleString() %></div>
+                                <div class="small text-muted">Comment</div>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="bg-light p-2 rounded">
+                                <div class="fw-bold text-info small"><%= (totals?.share || 0).toLocaleString() %></div>
+                                <div class="small text-muted">Share</div>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="bg-light p-2 rounded">
+                                <div class="fw-bold text-warning small"><%= (totals?.save || 0).toLocaleString() %></div>
+                                <div class="small text-muted">Save</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Follower Info jika ada -->
+                    <% if (followerChange && followerChange.start !== null) { %>
+                    <hr class="my-3">
+                    <div class="text-center">
+                        <div class="fw-bold <%= followerChange.diff >= 0 ? 'text-success' : 'text-danger' %>">
+                            <%= followerChange.end.toLocaleString() %> Followers
+                        </div>
+                        <div class="small text-muted">
+                            <%= (followerChange.diff >= 0 ? '+' : '') + followerChange.diff.toLocaleString() %>
+                            <% if (followerChange.pct !== null) { %>
+                                (<%= (followerChange.pct >= 0 ? '+' : '') + followerChange.pct.toFixed(1) %>%)
+                            <% } %>
+                        </div>
+                    </div>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
         <!-- Period Info -->
         <div class="row mt-4">
@@ -781,5 +722,143 @@
 
     <!-- Bottom spacer for printing -->
     <div style="height: 50px;"></div>
+
+    <!-- Chart Initialization Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Chart configuration untuk PDF/Print friendly
+    Chart.defaults.font.size = 11;
+    Chart.defaults.responsive = true;
+    Chart.defaults.maintainAspectRatio = false;
+    
+    const printMode = window.matchMedia('print');
+    
+    // Main Metrics Chart
+    const chartData = JSON.parse('<%- chartData || "null" %>');
+    if (chartData && document.getElementById('metricsChart')) {
+        const ctx = document.getElementById('metricsChart').getContext('2d');
+        
+        const config = {
+            type: 'line',
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 12,
+                            padding: 15,
+                            font: { size: 10 }
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        titleFont: { size: 11 },
+                        bodyFont: { size: 10 }
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        grid: { display: false },
+                        ticks: { 
+                            font: { size: 9 },
+                            maxRotation: 45
+                        }
+                    },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        grid: { color: '#e9ecef' },
+                        ticks: { 
+                            font: { size: 9 },
+                            callback: function(value) {
+                                return value >= 1000 ? (value/1000).toFixed(1) + 'k' : value;
+                            }
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        grid: { drawOnChartArea: false },
+                        ticks: { 
+                            font: { size: 9 },
+                            callback: function(value) {
+                                return value.toFixed(1) + '%';
+                            }
+                        }
+                    }
+                },
+                elements: {
+                    point: { radius: 3, hoverRadius: 5 },
+                    line: { borderWidth: 2 }
+                },
+                // Print-specific settings
+                animation: {
+                    onComplete: function() {
+                        if (printMode.matches) {
+                            this.options.animation = false;
+                        }
+                    }
+                }
+            }
+        };
+        
+        new Chart(ctx, config);
+    }
+    
+    // Follower Chart (untuk comparison mode)
+    const followerData = JSON.parse('<%- followerChartData || "null" %>');
+    if (followerData && document.getElementById('followerChart')) {
+        const ctx2 = document.getElementById('followerChart').getContext('2d');
+        
+        new Chart(ctx2, {
+            type: 'line',
+            data: followerData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return 'Followers: ' + context.parsed.y.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        grid: { display: false },
+                        ticks: { font: { size: 9 } }
+                    },
+                    y: {
+                        display: true,
+                        grid: { color: '#e9ecef' },
+                        ticks: { 
+                            font: { size: 9 },
+                            callback: function(value) {
+                                return value >= 1000 ? (value/1000).toFixed(1) + 'k' : value;
+                            }
+                        }
+                    }
+                },
+                elements: {
+                    point: { radius: 4 },
+                    line: { borderWidth: 3 }
+                }
+            }
+        });
+    }
+});
+</script>
 </body>
 </html>

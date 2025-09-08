@@ -7,6 +7,118 @@ const path = require('path');
 const fs = require('fs');
 const ExcelJS = require('exceljs');
 
+// Helper function untuk format data chart
+function prepareChartData(reports, insights, mode = 'normal', monthlyData = null) {
+  const colors = {
+    view: '#007bff',    // primary blue
+    like: '#dc3545',    // danger red
+    comment: '#28a745', // success green
+    share: '#17a2b8',   // info cyan
+    save: '#ffc107',    // warning yellow
+    er: '#6f42c1'       // purple
+  };
+
+  if (mode === 'normal') {
+    // Mode Normal: Data per post dengan tanggal
+    const chartData = {
+      labels: reports.map(r => new Date(r.post_date).toLocaleDateString('id-ID', { 
+        day: '2-digit', 
+        month: 'short' 
+      })),
+      datasets: []
+    };
+
+    // Tambahkan dataset untuk setiap insight yang dipilih
+    insights.forEach(insight => {
+      if (insight === 'er') {
+        // Hitung ER untuk setiap post
+        const erData = reports.map(r => {
+          const like = r.like_count || 0;
+          const comment = r.comment_count || 0;
+          const share = r.share_count || 0;
+          const save = r.save_count || 0;
+          const view = r.view_count || 1;
+          return ((like + comment + share + save) / view * 100);
+        });
+
+        chartData.datasets.push({
+          label: 'Engagement Rate (%)',
+          data: erData,
+          borderColor: colors.er,
+          backgroundColor: colors.er + '20',
+          borderWidth: 2,
+          fill: false,
+          tension: 0.3,
+          yAxisID: 'y1'
+        });
+      } else {
+        const key = insight + '_count';
+        chartData.datasets.push({
+          label: insight.charAt(0).toUpperCase() + insight.slice(1),
+          data: reports.map(r => r[key] || 0),
+          borderColor: colors[insight],
+          backgroundColor: colors[insight] + '20',
+          borderWidth: 2,
+          fill: false,
+          tension: 0.3
+        });
+      }
+    });
+
+    return chartData;
+  } else {
+    // Mode Perbandingan: Data per bulan
+    const monthNames = monthlyData.map(m => m.monthName);
+    const chartData = {
+      labels: monthNames,
+      datasets: []
+    };
+
+    insights.forEach(insight => {
+      if (insight === 'er') {
+        chartData.datasets.push({
+          label: 'Avg ER (%)',
+          data: monthlyData.map(m => m.averageER || 0),
+          borderColor: colors.er,
+          backgroundColor: colors.er + '20',
+          borderWidth: 3,
+          fill: false,
+          tension: 0.3,
+          yAxisID: 'y1'
+        });
+      } else {
+        chartData.datasets.push({
+          label: insight.charAt(0).toUpperCase() + insight.slice(1),
+          data: monthlyData.map(m => m.totals[insight] || 0),
+          borderColor: colors[insight],
+          backgroundColor: colors[insight] + '20',
+          borderWidth: 3,
+          fill: false,
+          tension: 0.3
+        });
+      }
+    });
+
+    return chartData;
+  }
+}
+
+// Helper untuk follower chart data
+function prepareFollowerChartData(monthlyData) {
+  return {
+    labels: monthlyData.map(m => m.monthName),
+    datasets: [{
+      label: 'Followers',
+      data: monthlyData.map(m => m.followerCount || 0),
+      borderColor: '#6f42c1',
+      backgroundColor: '#6f42c1' + '30',
+      borderWidth: 3,
+      fill: true,
+      tension: 0.3
+    }]
+  };
+}
+
 // Helper function to check if target is achieved
 function isTargetAchieved(engagementRate, targetRate) {
     if (!targetRate || targetRate <= 0) return false;
@@ -694,7 +806,10 @@ router.get('/print/export', async (req, res) => {
     let metricChange = {};
     let averageER = 0;
     let totalPostingan = 0;
-    
+    // Prepare chart data
+    let chartData = null;
+    let followerChartData = null;
+
     // FIXED: Variables untuk actual date range yang akan digunakan
     let actualStartDate, actualEndDate;
 
@@ -1301,6 +1416,21 @@ router.get('/print/export', async (req, res) => {
       return;
     }
 
+    if (isCompare && monthlyData.length > 0) {
+      // Mode Perbandingan - prepare monthly chart data
+      chartData = prepareChartData(null, insights, 'comparison', monthlyData);
+      
+      // Prepare follower chart data jika ada data follower
+      const hasFollowerData = monthlyData.some(m => m.followerCount !== null);
+      if (hasFollowerData) {
+        followerChartData = prepareFollowerChartData(monthlyData);
+      }
+    } else if (reports && reports.length > 0) {
+      // Mode Normal - prepare per-post chart data
+      const sortedReports = reports.slice().sort((a, b) => new Date(a.post_date) - new Date(b.post_date));
+      chartData = prepareChartData(sortedReports, insights, 'normal');
+    }
+
     console.log('🎯 Final render data:');
     console.log('- actualStartDate:', actualStartDate);
     console.log('- actualEndDate:', actualEndDate);
@@ -1325,7 +1455,9 @@ router.get('/print/export', async (req, res) => {
       monthlyData,
       compare,
       end_month,
-      months
+      months,
+      chartData: JSON.stringify(chartData),
+      followerChartData: JSON.stringify(followerChartData)
     });
   } catch (err) {
     console.error('❌ Error in /print/export:', err);

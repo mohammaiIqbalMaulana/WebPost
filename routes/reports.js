@@ -826,7 +826,14 @@ router.get('/print/export', async (req, res) => {
       .split(',')
       .map(s => s.trim())
       .filter(Boolean);
-    const insights = selectedInsights.length ? selectedInsights : defaultInsights;
+    let insights = selectedInsights.length ? selectedInsights : defaultInsights;
+
+    // In comparison mode, ensure 'post' is always included as it's a key metric
+    if (isCompare && !insights.includes('post')) {
+      insights.push('post');
+    }
+
+
 
     let reports = [];
     let monthlyData = [];
@@ -1522,7 +1529,7 @@ router.get('/print/export', async (req, res) => {
     if (isCompare && monthlyData.length > 0) {
       // Mode Perbandingan - prepare monthly chart data
       chartData = prepareChartData(null, insights, 'comparison', monthlyData);
-      
+
       // Prepare follower chart data jika ada data follower
       const hasFollowerData = monthlyData.some(m => m.followerCount !== null);
       if (hasFollowerData) {
@@ -1534,12 +1541,7 @@ router.get('/print/export', async (req, res) => {
       chartData = prepareChartData(sortedReports, insights, 'normal');
     }
 
-    console.log('🎯 Final render data:');
-    console.log('- actualStartDate:', actualStartDate);
-    console.log('- actualEndDate:', actualEndDate);
-    console.log('- totalPostingan:', totalPostingan);
-    console.log('- isCompare:', isCompare);
-    console.log('- monthlyData length:', monthlyData.length);
+
 
     res.render('reports/print_export', {
       title: 'Cetak Report',

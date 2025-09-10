@@ -678,6 +678,7 @@
         if (isCompareMode) {
             // Comparison Mode: Multiple charts per insight
             const chartDataArray = JSON.parse(rawChartData || "[]");
+
             chartDataArray.forEach(chartItem => {
                 const canvasId = `chart-${chartItem.insight}`;
                 const canvas = document.getElementById(canvasId);

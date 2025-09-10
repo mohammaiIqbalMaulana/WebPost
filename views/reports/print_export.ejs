@@ -295,7 +295,7 @@
                                 <% if (Array.isArray(insights) ? insights.includes('share') : true) { %><th>Share</th><% } %>
                                 <% if (Array.isArray(insights) ? insights.includes('save') : true) { %><th>Save</th><% } %>
                                 <% if (Array.isArray(insights) ? insights.includes('er') : true) { %><th>Avg ER</th><% } %>
-                                <th>Followers</th>
+                                <th>Follower Growth</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -309,7 +309,19 @@
                                     <% if (Array.isArray(insights) ? insights.includes('share') : true) { %><td><%= month.totals.share.toLocaleString() %></td><% } %>
                                     <% if (Array.isArray(insights) ? insights.includes('save') : true) { %><td><%= month.totals.save.toLocaleString() %></td><% } %>
                                     <% if (Array.isArray(insights) ? insights.includes('er') : true) { %><td><%= month.averageER.toFixed(2) %>%</td><% } %>
-                                    <td><%= month.followerCount ? month.followerCount.toLocaleString() : '-' %></td>
+                                    <td>
+                                        <% if (month.followerGrowth !== null && month.followerGrowth !== undefined) { %>
+                                            <% if (month.followerGrowth > 0) { %>
+                                                <span class="text-success fw-bold">+<%= month.followerGrowth.toLocaleString() %></span>
+                                            <% } else if (month.followerGrowth < 0) { %>
+                                                <span class="text-danger fw-bold"><%= month.followerGrowth.toLocaleString() %></span>
+                                            <% } else { %>
+                                                <span class="text-muted"><%= month.followerGrowth.toLocaleString() %></span>
+                                            <% } %>
+                                        <% } else { %>
+                                            <span class="text-muted">-</span>
+                                        <% } %>
+                                    </td>
                                 </tr>
                             <% }); %>
                         </tbody>
@@ -437,80 +449,116 @@
         <% } %>
 
         <div class="row g-4">
-            <!-- Main Metrics Chart -->
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header bg-primary text-white">
-                        <h6 class="mb-0">
-                            <i class="bi bi-graph-up me-2"></i>
-                            <% if (isCompare) { %>
-                                Tren Perbandingan Metrics per Bulan
-                            <% } else { %>
-                                Tren Metrics per Post
-                            <% } %>
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="chart-container" style="position: relative; height: 300px; max-width: 100%; overflow-x: auto;">
-                            <canvas id="metricsChart"></canvas>
+            <% if (isCompare) { %>
+                <!-- Comparison Mode: Separate Charts per Insight -->
+                <% const chartDataArray = JSON.parse(chartData || "[]"); %>
+                <% chartDataArray.forEach((chartItem, index) => { %>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-graph-up me-2"></i>
+                                    Tren <%= chartItem.insight.charAt(0).toUpperCase() + chartItem.insight.slice(1) %> per Bulan
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" style="position: relative; height: 250px; max-width: 100%; overflow-x: auto;">
+                                    <canvas id="chart-<%= chartItem.insight %>"></canvas>
+                                </div>
+                            </div>
                         </div>
-                        
-                        <!-- Chart Legend Info -->
-                        <div class="mt-3">
-                            <div class="row text-center">
-                                <% if (Array.isArray(insights) ? insights.includes('view') : true) { %>
-                                    <div class="col">
-                                        <div class="small">
-                                            <div class="d-inline-block bg-primary" style="width: 12px; height: 3px; margin-right: 5px;"></div>
-                                            View
+                    </div>
+                <% }); %>
+                <% if (followerChartData && !JSON.parse(chartData || "[]").some(item => item.insight === 'follower')) { %>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-people-fill me-2"></i>
+                                    Tren Followers per Bulan
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" style="position: relative; height: 250px; max-width: 100%; overflow-x: auto;">
+                                    <canvas id="chart-follower"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <% } %>
+
+            <% } else { %>
+                <!-- Normal Mode: Single Combined Chart -->
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0">
+                                <i class="bi bi-graph-up me-2"></i>
+                                Tren Metrics per Post
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container" style="position: relative; height: 300px; max-width: 100%; overflow-x: auto;">
+                                <canvas id="metricsChart"></canvas>
+                            </div>
+
+                            <!-- Chart Legend Info -->
+                            <div class="mt-3">
+                                <div class="row text-center">
+                                    <% if (Array.isArray(insights) ? insights.includes('view') : true) { %>
+                                        <div class="col">
+                                            <div class="small">
+                                                <div class="d-inline-block bg-primary" style="width: 12px; height: 3px; margin-right: 5px;"></div>
+                                                View
+                                            </div>
                                         </div>
-                                    </div>
-                                <% } %>
-                                <% if (Array.isArray(insights) ? insights.includes('like') : true) { %>
-                                    <div class="col">
-                                        <div class="small">
-                                            <div class="d-inline-block bg-danger" style="width: 12px; height: 3px; margin-right: 5px;"></div>
-                                            Like
+                                    <% } %>
+                                    <% if (Array.isArray(insights) ? insights.includes('like') : true) { %>
+                                        <div class="col">
+                                            <div class="small">
+                                                <div class="d-inline-block bg-danger" style="width: 12px; height: 3px; margin-right: 5px;"></div>
+                                                Like
+                                            </div>
                                         </div>
-                                    </div>
-                                <% } %>
-                                <% if (Array.isArray(insights) ? insights.includes('comment') : true) { %>
-                                    <div class="col">
-                                        <div class="small">
-                                            <div class="d-inline-block bg-success" style="width: 12px; height: 3px; margin-right: 5px;"></div>
-                                            Comment
+                                    <% } %>
+                                    <% if (Array.isArray(insights) ? insights.includes('comment') : true) { %>
+                                        <div class="col">
+                                            <div class="small">
+                                                <div class="d-inline-block bg-success" style="width: 12px; height: 3px; margin-right: 5px;"></div>
+                                                Comment
+                                            </div>
                                         </div>
-                                    </div>
-                                <% } %>
-                                <% if (Array.isArray(insights) ? insights.includes('share') : true) { %>
-                                    <div class="col">
-                                        <div class="small">
-                                            <div class="d-inline-block bg-info" style="width: 12px; height: 3px; margin-right: 5px;"></div>
-                                            Share
+                                    <% } %>
+                                    <% if (Array.isArray(insights) ? insights.includes('share') : true) { %>
+                                        <div class="col">
+                                            <div class="small">
+                                                <div class="d-inline-block bg-info" style="width: 12px; height: 3px; margin-right: 5px;"></div>
+                                                Share
+                                            </div>
                                         </div>
-                                    </div>
-                                <% } %>
-                                <% if (Array.isArray(insights) ? insights.includes('save') : true) { %>
-                                    <div class="col">
-                                        <div class="small">
-                                            <div class="d-inline-block bg-warning" style="width: 12px; height: 3px; margin-right: 5px;"></div>
-                                            Save
+                                    <% } %>
+                                    <% if (Array.isArray(insights) ? insights.includes('save') : true) { %>
+                                        <div class="col">
+                                            <div class="small">
+                                                <div class="d-inline-block bg-warning" style="width: 12px; height: 3px; margin-right: 5px;"></div>
+                                                Save
+                                            </div>
                                         </div>
-                                    </div>
-                                <% } %>
-                                <% if (Array.isArray(insights) ? insights.includes('er') : true) { %>
-                                    <div class="col">
-                                        <div class="small">
-                                            <div class="d-inline-block" style="width: 12px; height: 3px; margin-right: 5px; background-color: #6f42c1;"></div>
-                                            ER (%)
+                                    <% } %>
+                                    <% if (Array.isArray(insights) ? insights.includes('er') : true) { %>
+                                        <div class="col">
+                                            <div class="small">
+                                                <div class="d-inline-block" style="width: 12px; height: 3px; margin-right: 5px; background-color: #6f42c1;"></div>
+                                                ER (%)
+                                            </div>
                                         </div>
-                                    </div>
-                                <% } %>
+                                    <% } %>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            <% } %>
 
             <!-- Summary Statistics Cards (Kompak) for Normal Mode ONLY -->
             <% if (!isCompare) { %>
@@ -620,87 +668,241 @@
         Chart.defaults.font.size = 11;
         Chart.defaults.responsive = true;
         Chart.defaults.maintainAspectRatio = false;
-        
+
         const printMode = window.matchMedia('print');
-        
-        // Main Metrics Chart
-        const chartData = JSON.parse('<%- chartData || "null" %>');
-        if (chartData && document.getElementById('metricsChart')) {
-            const ctx = document.getElementById('metricsChart').getContext('2d');
-            
-            const config = {
-                type: 'line',
-                data: chartData,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'bottom',
-                            labels: {
-                                boxWidth: 12,
-                                padding: 15,
-                                font: { size: 10 }
+
+        // Chart initialization
+        const rawChartData = '<%- chartData || "null" %>';
+        const isCompareMode = '<%- isCompare %>' === 'true';
+
+        if (isCompareMode) {
+            // Comparison Mode: Multiple charts per insight
+            const chartDataArray = JSON.parse(rawChartData || "[]");
+            chartDataArray.forEach(chartItem => {
+                const canvasId = `chart-${chartItem.insight}`;
+                const canvas = document.getElementById(canvasId);
+                if (canvas) {
+                    const ctx = canvas.getContext('2d');
+
+                    const config = {
+                        type: 'line',
+                        data: chartItem.data,
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    position: 'bottom',
+                                    labels: {
+                                        boxWidth: 12,
+                                        padding: 15,
+                                        font: { size: 10 }
+                                    }
+                                },
+                                tooltip: {
+                                    mode: 'index',
+                                    intersect: false,
+                                    titleFont: { size: 11 },
+                                    bodyFont: { size: 10 }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    display: true,
+                                    grid: { display: false },
+                                    ticks: {
+                                        font: { size: 9 },
+                                        maxRotation: 45
+                                    }
+                                },
+                                y: {
+                                    type: 'linear',
+                                    display: true,
+                                    position: 'left',
+                                    grid: { color: '#e9ecef' },
+                                    ticks: {
+                                        font: { size: 9 },
+                                        callback: function(value) {
+                                            if (chartItem.insight === 'er') {
+                                                return value.toFixed(1) + '%';
+                                            } else if (chartItem.insight === 'post' || chartItem.insight === 'follower') {
+                                                return value.toLocaleString();
+                                            }
+                                            return value >= 1000 ? (value/1000).toFixed(1) + 'k' : value;
+                                        }
+                                    }
+                                }
+                            },
+                            elements: {
+                                point: { radius: 3, hoverRadius: 5 },
+                                line: { borderWidth: 2 }
+                            },
+                            // Print-specific settings
+                            animation: {
+                                onComplete: function() {
+                                    if (printMode.matches) {
+                                        this.options.animation = false;
+                                    }
+                                }
                             }
-                        },
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false,
-                            titleFont: { size: 11 },
-                            bodyFont: { size: 10 }
                         }
-                    },
-                    scales: {
-                        x: {
-                            display: true,
-                            grid: { display: false },
-                            ticks: { 
-                                font: { size: 9 },
-                                maxRotation: 45
+                    };
+
+                    new Chart(ctx, config);
+                }
+            });
+
+            // Handle separate follower chart if data exists
+            const rawFollowerChartData = '<%- followerChartData || "null" %>';
+            if (rawFollowerChartData !== 'null') {
+                const followerChartData = JSON.parse(rawFollowerChartData);
+                const followerCanvas = document.getElementById('chart-follower');
+                if (followerCanvas && followerChartData) {
+                    const ctx = followerCanvas.getContext('2d');
+                    const config = {
+                        type: 'line',
+                        data: followerChartData,
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    position: 'bottom',
+                                    labels: {
+                                        boxWidth: 12,
+                                        padding: 15,
+                                        font: { size: 10 }
+                                    }
+                                },
+                                tooltip: {
+                                    mode: 'index',
+                                    intersect: false,
+                                    titleFont: { size: 11 },
+                                    bodyFont: { size: 10 }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    display: true,
+                                    grid: { display: false },
+                                    ticks: {
+                                        font: { size: 9 },
+                                        maxRotation: 45
+                                    }
+                                },
+                                y: {
+                                    type: 'linear',
+                                    display: true,
+                                    position: 'left',
+                                    grid: { color: '#e9ecef' },
+                                    ticks: {
+                                        font: { size: 9 },
+                                        callback: function(value) {
+                                            return value.toLocaleString();
+                                        }
+                                    }
+                                }
+                            },
+                            elements: {
+                                point: { radius: 3, hoverRadius: 5 },
+                                line: { borderWidth: 2 }
+                            },
+                            animation: {
+                                onComplete: function() {
+                                    if (printMode.matches) {
+                                        this.options.animation = false;
+                                    }
+                                }
+                            }
+                        }
+                    };
+                    new Chart(ctx, config);
+                }
+            }
+
+
+        } else {
+            // Normal Mode: Single combined chart
+            const chartData = JSON.parse(rawChartData || "null");
+            if (chartData && document.getElementById('metricsChart')) {
+                const ctx = document.getElementById('metricsChart').getContext('2d');
+
+                const config = {
+                    type: 'line',
+                    data: chartData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'bottom',
+                                labels: {
+                                    boxWidth: 12,
+                                    padding: 15,
+                                    font: { size: 10 }
+                                }
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                titleFont: { size: 11 },
+                                bodyFont: { size: 10 }
                             }
                         },
-                        y: {
-                            type: 'linear',
-                            display: true,
-                            position: 'left',
-                            grid: { color: '#e9ecef' },
-                            ticks: { 
-                                font: { size: 9 },
-                                callback: function(value) {
-                                    return value >= 1000 ? (value/1000).toFixed(1) + 'k' : value;
+                        scales: {
+                            x: {
+                                display: true,
+                                grid: { display: false },
+                                ticks: {
+                                    font: { size: 9 },
+                                    maxRotation: 45
+                                }
+                            },
+                            y: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                                grid: { color: '#e9ecef' },
+                                ticks: {
+                                    font: { size: 9 },
+                                    callback: function(value) {
+                                        return value >= 1000 ? (value/1000).toFixed(1) + 'k' : value;
+                                    }
+                                }
+                            },
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                grid: { drawOnChartArea: false },
+                                ticks: {
+                                    font: { size: 9 },
+                                    callback: function(value) {
+                                        return value.toFixed(1) + '%';
+                                    }
                                 }
                             }
                         },
-                        y1: {
-                            type: 'linear',
-                            display: true,
-                            position: 'right',
-                            grid: { drawOnChartArea: false },
-                            ticks: { 
-                                font: { size: 9 },
-                                callback: function(value) {
-                                    return value.toFixed(1) + '%';
+                        elements: {
+                            point: { radius: 3, hoverRadius: 5 },
+                            line: { borderWidth: 2 }
+                        },
+                        // Print-specific settings
+                        animation: {
+                            onComplete: function() {
+                                if (printMode.matches) {
+                                    this.options.animation = false;
                                 }
-                            }
-                        }
-                    },
-                    elements: {
-                        point: { radius: 3, hoverRadius: 5 },
-                        line: { borderWidth: 2 }
-                    },
-                    // Print-specific settings
-                    animation: {
-                        onComplete: function() {
-                            if (printMode.matches) {
-                                this.options.animation = false;
                             }
                         }
                     }
-                }
-            };
-            
-            new Chart(ctx, config);
+                };
+
+                new Chart(ctx, config);
+            }
         }
     });
     </script>

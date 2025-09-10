@@ -15,7 +15,9 @@ function prepareChartData(reports, insights, mode = 'normal', monthlyData = null
     comment: '#28a745', // success green
     share: '#17a2b8',   // info cyan
     save: '#ffc107',    // warning yellow
-    er: '#6f42c1'       // purple
+    er: '#6f42c1',      // purple
+    post: '#6c757d',    // secondary gray
+    follower: '#20c997' // teal
   };
 
   if (mode === 'normal') {
@@ -67,14 +69,16 @@ function prepareChartData(reports, insights, mode = 'normal', monthlyData = null
 
     return chartData;
   } else {
-    // Mode Perbandingan: Data per bulan
+    // Mode Perbandingan: Data per bulan - return array of chartData, one per insight
     const monthNames = monthlyData.map(m => m.monthName);
-    const chartData = {
-      labels: monthNames,
-      datasets: []
-    };
+    const chartDataArray = [];
 
     insights.forEach(insight => {
+      const chartData = {
+        labels: monthNames,
+        datasets: []
+      };
+
       if (insight === 'er') {
         chartData.datasets.push({
           label: 'Avg ER (%)',
@@ -85,6 +89,26 @@ function prepareChartData(reports, insights, mode = 'normal', monthlyData = null
           fill: false,
           tension: 0.3,
           yAxisID: 'y1'
+        });
+      } else if (insight === 'post') {
+        chartData.datasets.push({
+          label: 'Posts',
+          data: monthlyData.map(m => m.postCount || 0),
+          borderColor: colors.post,
+          backgroundColor: colors.post + '20',
+          borderWidth: 3,
+          fill: false,
+          tension: 0.3
+        });
+      } else if (insight === 'follower') {
+        chartData.datasets.push({
+          label: 'Followers',
+          data: monthlyData.map(m => m.followerCount || 0),
+          borderColor: colors.follower,
+          backgroundColor: colors.follower + '20',
+          borderWidth: 3,
+          fill: false,
+          tension: 0.3
         });
       } else {
         chartData.datasets.push({
@@ -97,9 +121,14 @@ function prepareChartData(reports, insights, mode = 'normal', monthlyData = null
           tension: 0.3
         });
       }
+
+      chartDataArray.push({
+        insight: insight,
+        data: chartData
+      });
     });
 
-    return chartData;
+    return chartDataArray;
   }
 }
 
@@ -792,7 +821,7 @@ router.get('/print/export', async (req, res) => {
     const isCompare = String(compare) === '1';
 
     // Parse selected insights (comma-separated), default to all if empty
-    const defaultInsights = ['view', 'like', 'comment', 'share', 'save', 'er'];
+    const defaultInsights = ['view', 'like', 'comment', 'share', 'save', 'er', 'post', 'follower'];
     const selectedInsights = (selected_insights || '')
       .split(',')
       .map(s => s.trim())
@@ -905,9 +934,11 @@ router.get('/print/export', async (req, res) => {
       }
 
       // Process each month
-      for (const monthData of compareMonths) {
+      let previousFollowerCount = null;
+      for (let i = 0; i < compareMonths.length; i++) {
+        const monthData = compareMonths[i];
         console.log(`\n🗓️  Processing month: ${monthData.monthName}`);
-        
+
         // Get follower data for this month
         let followerCount = null;
         try {
@@ -933,6 +964,22 @@ router.get('/print/export', async (req, res) => {
           }
         } catch (followerError) {
           console.error('Error processing follower for month:', followerError);
+        }
+
+        // Calculate follower growth from previous month
+        let followerGrowth = null;
+        if (followerCount !== null && previousFollowerCount !== null) {
+          followerGrowth = followerCount - previousFollowerCount;
+          console.log(`📈 Follower growth for ${monthData.monthName}:`, followerGrowth);
+        } else if (followerCount !== null && previousFollowerCount === null) {
+          // First month with data, show absolute count as growth
+          followerGrowth = followerCount;
+          console.log(`📈 First month follower growth for ${monthData.monthName}:`, followerGrowth);
+        }
+
+        // Update previousFollowerCount for next iteration
+        if (followerCount !== null) {
+          previousFollowerCount = followerCount;
         }
 
         // Filter posts for this specific month
@@ -1004,6 +1051,7 @@ router.get('/print/export', async (req, res) => {
           ...monthData,
           reports: monthReports,
           followerCount,
+          followerGrowth,
           totals: monthTotals,
           hasPosts: monthReports.length > 0,
           postCount: monthReports.length,
@@ -1512,7 +1560,7 @@ router.get('/print/export', async (req, res) => {
       end_month,
       months,
       chartData: JSON.stringify(chartData),
-      followerChartData: JSON.stringify(followerChartData)
+      followerChartData: followerChartData ? JSON.stringify(followerChartData) : null
     });
   } catch (err) {
     console.error('❌ Error in /print/export:', err);

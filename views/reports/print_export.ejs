@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <title><%= title %></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-            <style>
+    <style>
         @media print {
             .no-print { display: none !important; }
             a[href]:after { content: "" !important; }
@@ -29,12 +29,55 @@
             
             /* Normal mode - table immediately after title */
             .normal-table-section { page-break-after: avoid; }
+            
+            /* Chart specific print styles */
+            .chart-container {
+                break-inside: avoid;
+                page-break-inside: avoid;
+                margin-bottom: 1rem;
+            }
+            
+            canvas {
+                max-width: 100% !important;
+                height: auto !important;
+                background: white !important;
+            }
+            
+            .card {
+                border: 1px solid #dee2e6 !important;
+                box-shadow: none !important;
+            }
+            
+            .card-header {
+                background-color: #f8f9fa !important;
+                color: #212529 !important;
+                border-bottom: 1px solid #dee2e6 !important;
+                print-color-adjust: exact;
+            }
+            
+            /* Force chart colors in print */
+            .chart-container * {
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
         }
         @media screen {
             .thumb {
                 max-width: 120px; max-height: 120px; object-fit: cover;
             }
+            
+            .chart-container {
+                min-height: 300px;
+            }
+            
+            .card-header.bg-primary,
+            .card-header.bg-info,
+            .card-header.bg-secondary {
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
         }
+        
         .comparison-card {
             transition: transform 0.2s;
         }
@@ -87,56 +130,6 @@
             border-color: #ffc107;
             background: linear-gradient(135deg, #fffdf5 0%, #fff3cd 100%);
         }
-
-        /* Tambahkan di bagian @media print dalam existing CSS */
-@media print {
-    /* Existing print styles... */
-    
-    /* Chart specific print styles */
-    .chart-container {
-        break-inside: avoid;
-        page-break-inside: avoid;
-        margin-bottom: 1rem;
-    }
-    
-    canvas {
-        max-width: 100% !important;
-        height: auto !important;
-        background: white !important;
-    }
-    
-    .card {
-        border: 1px solid #dee2e6 !important;
-        box-shadow: none !important;
-    }
-    
-    .card-header {
-        background-color: #f8f9fa !important;
-        color: #212529 !important;
-        border-bottom: 1px solid #dee2e6 !important;
-        print-color-adjust: exact;
-    }
-    
-    /* Force chart colors in print */
-    .chart-container * {
-        print-color-adjust: exact;
-        -webkit-print-color-adjust: exact;
-    }
-}
-
-/* Screen-specific improvements */
-@media screen {
-    .chart-container {
-        min-height: 300px;
-    }
-    
-    .card-header.bg-primary,
-    .card-header.bg-info,
-    .card-header.bg-secondary {
-        print-color-adjust: exact;
-        -webkit-print-color-adjust: exact;
-    }
-}
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script>
@@ -218,112 +211,112 @@
             </div>
         </div>
 
-        <!-- Percentage Change Section (1 month before comparison) -->
-        <% if (monthlyData.length >= 2) { %>
-            <% const lastMonth = monthlyData[monthlyData.length - 1]; %>
-            <% const prevMonth = monthlyData[monthlyData.length - 2]; %>
-            <% if (lastMonth.metricChanges) { %>
-                <div class="card mb-4">
-                    <div class="card-header bg-info text-white">
-                        <h6 class="mb-0">
-                            <i class="bi bi-arrow-up-down me-2"></i>
-                            Perubahan Persentase: <%= lastMonth.monthName %> vs <%= prevMonth.monthName %>
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="row g-3">
-                            <% if (Array.isArray(insights) ? insights.includes('view') : true) { %>
-                                <div class="col-md-4 col-sm-6">
-                                    <div class="text-center">
-                                        <div class="small text-muted">View</div>
-                                        <div class="small text-muted mb-1">
-                                            <%= prevMonth.totals.view.toLocaleString() %> → <%= lastMonth.totals.view.toLocaleString() %>
-                                        </div>
-                                        <div class="h5 mb-0 <%= lastMonth.metricChanges.view >= 0 ? 'text-success' : 'text-danger' %>">
-                                            <%= (lastMonth.metricChanges.view >= 0 ? '+' : '') + lastMonth.metricChanges.view.toFixed(1) %>%
-                                        </div>
-                                    </div>
-                                </div>
-                            <% } %>
-                            <% if (Array.isArray(insights) ? insights.includes('like') : true) { %>
-                                <div class="col-md-4 col-sm-6">
-                                    <div class="text-center">
-                                        <div class="small text-muted">Like</div>
-                                        <div class="small text-muted mb-1">
-                                            <%= prevMonth.totals.like.toLocaleString() %> → <%= lastMonth.totals.like.toLocaleString() %>
-                                        </div>
-                                        <div class="h5 mb-0 <%= lastMonth.metricChanges.like >= 0 ? 'text-success' : 'text-danger' %>">
-                                            <%= (lastMonth.metricChanges.like >= 0 ? '+' : '') + lastMonth.metricChanges.like.toFixed(1) %>%
-                                        </div>
-                                    </div>
-                                </div>
-                            <% } %>
-                            <% if (Array.isArray(insights) ? insights.includes('comment') : true) { %>
-                                <div class="col-md-4 col-sm-6">
-                                    <div class="text-center">
-                                        <div class="small text-muted">Comment</div>
-                                        <div class="small text-muted mb-1">
-                                            <%= prevMonth.totals.comment.toLocaleString() %> → <%= lastMonth.totals.comment.toLocaleString() %>
-                                        </div>
-                                        <div class="h5 mb-0 <%= lastMonth.metricChanges.comment >= 0 ? 'text-success' : 'text-danger' %>">
-                                            <%= (lastMonth.metricChanges.comment >= 0 ? '+' : '') + lastMonth.metricChanges.comment.toFixed(1) %>%
-                                        </div>
-                                    </div>
-                                </div>
-                            <% } %>
-                            <% if (Array.isArray(insights) ? insights.includes('share') : true) { %>
-                                <div class="col-md-4 col-sm-6">
-                                    <div class="text-center">
-                                        <div class="small text-muted">Share</div>
-                                        <div class="small text-muted mb-1">
-                                            <%= prevMonth.totals.share.toLocaleString() %> → <%= lastMonth.totals.share.toLocaleString() %>
-                                        </div>
-                                        <div class="h5 mb-0 <%= lastMonth.metricChanges.share >= 0 ? 'text-success' : 'text-danger' %>">
-                                            <%= (lastMonth.metricChanges.share >= 0 ? '+' : '') + lastMonth.metricChanges.share.toFixed(1) %>%
-                                        </div>
-                                    </div>
-                                </div>
-                            <% } %>
-                            <% if (Array.isArray(insights) ? insights.includes('save') : true) { %>
-                                <div class="col-md-4 col-sm-6">
-                                    <div class="text-center">
-                                        <div class="small text-muted">Save</div>
-                                        <div class="small text-muted mb-1">
-                                            <%= prevMonth.totals.save.toLocaleString() %> → <%= lastMonth.totals.save.toLocaleString() %>
-                                        </div>
-                                        <div class="h5 mb-0 <%= lastMonth.metricChanges.save >= 0 ? 'text-success' : 'text-danger' %>">
-                                            <%= (lastMonth.metricChanges.save >= 0 ? '+' : '') + lastMonth.metricChanges.save.toFixed(1) %>%
-                                        </div>
-                                    </div>
-                                </div>
-                            <% } %>
-                            <% if (Array.isArray(insights) ? insights.includes('er') : true) { %>
-                                <div class="col-md-4 col-sm-6">
-                                    <div class="text-center">
-                                        <div class="small text-muted">ER Rata-rata</div>
-                                        <div class="small text-muted mb-1">
-                                            <%= prevMonth.averageER.toFixed(2) %>% → <%= lastMonth.averageER.toFixed(2) %>%
-                                        </div>
-                                        <div class="h5 mb-0 <%= lastMonth.metricChanges.averageER >= 0 ? 'text-success' : 'text-danger' %>">
-                                            <%= (lastMonth.metricChanges.averageER >= 0 ? '+' : '') + lastMonth.metricChanges.averageER.toFixed(1) %>%
-                                        </div>
-                                    </div>
-                                </div>
-                            <% } %>
+        <!-- Enhanced Summary Statistics with Monthly Details (MOVED TO TOP) -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h6 class="mb-0">
+                    <i class="bi bi-list-ul me-2"></i>
+                    Ringkasan Statistik & Detail Bulanan
+                </h6>
+            </div>
+            <div class="card-body">
+                <!-- Overall Totals -->
+                <div class="row g-2 text-center mb-4">
+                    <div class="col-3">
+                        <div class="bg-light p-2 rounded">
+                            <div class="fw-bold text-primary"><%= totalPostingan %></div>
+                            <div class="small text-muted">Total Posts</div>
                         </div>
-                        <div class="text-center mt-3">
-                            <small class="text-muted">
-                                Rumus: (Bulan Terakhir - Bulan Sebelumnya) / Bulan Sebelumnya × 100%
-                            </small>
+                    </div>
+                    <div class="col-3">
+                        <div class="bg-light p-2 rounded">
+                            <div class="fw-bold text-success"><%= (averageER || 0).toFixed(2) %>%</div>
+                            <div class="small text-muted">Avg ER</div>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="bg-light p-2 rounded">
+                            <div class="fw-bold text-info"><%= (totals?.view || 0).toLocaleString() %></div>
+                            <div class="small text-muted">Total View</div>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="bg-light p-2 rounded">
+                            <div class="fw-bold text-secondary"><%= (totals?.follower || 0).toLocaleString() %></div>
+                            <div class="small text-muted">Total Followers</div>
                         </div>
                     </div>
                 </div>
-            <% } %>
-        <% } %>
+                
+                <hr class="mb-3">
+                
+                <!-- Total Metrics -->
+                <div class="row g-2 text-center mb-4">
+                    <div class="col-3">
+                        <div class="bg-light p-2 rounded">
+                            <div class="fw-bold text-danger small"><%= (totals?.like || 0).toLocaleString() %></div>
+                            <div class="small text-muted">Total Like</div>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="bg-light p-2 rounded">
+                            <div class="fw-bold text-success small"><%= (totals?.comment || 0).toLocaleString() %></div>
+                            <div class="small text-muted">Total Comment</div>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="bg-light p-2 rounded">
+                            <div class="fw-bold text-info small"><%= (totals?.share || 0).toLocaleString() %></div>
+                            <div class="small text-muted">Total Share</div>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="bg-light p-2 rounded">
+                            <div class="fw-bold text-warning small"><%= (totals?.save || 0).toLocaleString() %></div>
+                            <div class="small text-muted">Total Save</div>
+                        </div>
+                    </div>
+                </div>
 
-
-
-
+                <!-- Monthly Breakdown -->
+                <hr class="mb-3">
+                <div class="text-center mb-2">
+                    <strong class="text-primary">Detail Per Bulan</strong>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped">
+                        <thead>
+                            <tr>
+                                <th>Bulan</th>
+                                <th>Posts</th>
+                                <% if (Array.isArray(insights) ? insights.includes('view') : true) { %><th>View</th><% } %>
+                                <% if (Array.isArray(insights) ? insights.includes('like') : true) { %><th>Like</th><% } %>
+                                <% if (Array.isArray(insights) ? insights.includes('comment') : true) { %><th>Comment</th><% } %>
+                                <% if (Array.isArray(insights) ? insights.includes('share') : true) { %><th>Share</th><% } %>
+                                <% if (Array.isArray(insights) ? insights.includes('save') : true) { %><th>Save</th><% } %>
+                                <% if (Array.isArray(insights) ? insights.includes('er') : true) { %><th>Avg ER</th><% } %>
+                                <th>Followers</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% monthlyData.forEach(month => { %>
+                                <tr>
+                                    <td class="fw-bold"><%= month.monthName %></td>
+                                    <td><%= month.postCount %></td>
+                                    <% if (Array.isArray(insights) ? insights.includes('view') : true) { %><td><%= month.totals.view.toLocaleString() %></td><% } %>
+                                    <% if (Array.isArray(insights) ? insights.includes('like') : true) { %><td><%= month.totals.like.toLocaleString() %></td><% } %>
+                                    <% if (Array.isArray(insights) ? insights.includes('comment') : true) { %><td><%= month.totals.comment.toLocaleString() %></td><% } %>
+                                    <% if (Array.isArray(insights) ? insights.includes('share') : true) { %><td><%= month.totals.share.toLocaleString() %></td><% } %>
+                                    <% if (Array.isArray(insights) ? insights.includes('save') : true) { %><td><%= month.totals.save.toLocaleString() %></td><% } %>
+                                    <% if (Array.isArray(insights) ? insights.includes('er') : true) { %><td><%= month.averageER.toFixed(2) %>%</td><% } %>
+                                    <td><%= month.followerCount ? month.followerCount.toLocaleString() : '-' %></td>
+                                </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
 
     <% } else { %>
         <!-- NORMAL MODE -->
@@ -337,19 +330,19 @@
 
         <% if (reports && reports.length > 0) { %>
             <div class="table-responsive normal-table-section">
-        <table class="table table-bordered table-hover align-middle">
-            <thead class="table-light">
-                <tr>
-                    <th width="50" class="text-center">No</th>
-                    <th>Detail Post</th>
-                    <th width="120">Tanggal</th>
-                    <th width="200">Insight</th>
-                    <th width="100">Status</th>
-                    <% if (includeThumbs) { %>
-                        <th width="120" class="text-center">Konten</th>
-                    <% } %>
-                </tr>
-            </thead>
+                <table class="table table-bordered table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th width="50" class="text-center">No</th>
+                            <th>Detail Post</th>
+                            <th width="120">Tanggal</th>
+                            <th width="200">Insight</th>
+                            <th width="100">Status</th>
+                            <% if (includeThumbs) { %>
+                                <th width="120" class="text-center">Konten</th>
+                            <% } %>
+                        </tr>
+                    </thead>
                     <tbody>
                     <% reports.forEach((r, i)=> { %>
                         <tr>
@@ -435,28 +428,28 @@
         <% } %>
     <% } %>
 
-<!-- Chart Visualization Section -->
-<div class="mt-5 summary-section">
-    <% if (isCompare) { %>
-        <h4 class="mb-4">📊 Visualisasi Perbandingan Keseluruhan</h4>
-    <% } else { %>
-        <h4 class="mb-4">📊 Visualisasi Tren Data</h4>
-    <% } %>
+    <!-- Chart Visualization Section -->
+    <div class="mt-5 summary-section">
+        <% if (isCompare) { %>
+            <h4 class="mb-4">📊 Visualisasi Tren Metrics per Bulan</h4>
+        <% } else { %>
+            <h4 class="mb-4">📊 Visualisasi Tren Data</h4>
+        <% } %>
 
-    <div class="row g-4">
-        <!-- Main Metrics Chart -->
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h6 class="mb-0">
-                        <i class="bi bi-graph-up me-2"></i>
-                        <% if (isCompare) { %>
-                            Tren Perbandingan Metrics per Bulan
-                        <% } else { %>
-                            Tren Metrics per Post
-                        <% } %>
-                    </h6>
-                </div>
+        <div class="row g-4">
+            <!-- Main Metrics Chart -->
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0">
+                            <i class="bi bi-graph-up me-2"></i>
+                            <% if (isCompare) { %>
+                                Tren Perbandingan Metrics per Bulan
+                            <% } else { %>
+                                Tren Metrics per Post
+                            <% } %>
+                        </h6>
+                    </div>
                     <div class="card-body">
                         <div class="chart-container" style="position: relative; height: 300px; max-width: 100%; overflow-x: auto;">
                             <canvas id="metricsChart"></canvas>
@@ -517,129 +510,100 @@
                         </div>
                     </div>
                 </div>
-        </div>
+            </div>
 
-        <!-- Follower Chart (only for comparison mode with follower data) -->
-        <% if (isCompare && followerChartData) { %>
-        <div class="col-lg-6">
-            <div class="card">
-                <div class="card-header bg-info text-white">
-                    <h6 class="mb-0">
-                        <i class="bi bi-people me-2"></i>
-                        Tren Pertumbuhan Follower
-                    </h6>
-                </div>
-                <div class="card-body">
-                    <div class="chart-container" style="position: relative; height: 300px;">
-                        <canvas id="followerChart"></canvas>
+            <!-- Summary Statistics Cards (Kompak) for Normal Mode ONLY -->
+            <% if (!isCompare) { %>
+            <div class="col-12">
+                <div class="card h-100">
+                    <div class="card-header bg-secondary text-white">
+                        <h6 class="mb-0">
+                            <i class="bi bi-list-ul me-2"></i>
+                            Ringkasan Statistik
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-2 text-center">
+                            <div class="col-4">
+                                <div class="bg-light p-2 rounded">
+                                    <div class="fw-bold text-primary"><%= totalPostingan %></div>
+                                    <div class="small text-muted">Posts</div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="bg-light p-2 rounded">
+                                    <div class="fw-bold text-success"><%= (averageER || 0).toFixed(2) %>%</div>
+                                    <div class="small text-muted">Avg ER</div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="bg-light p-2 rounded">
+                                    <div class="fw-bold text-info"><%= (totals?.view || 0).toLocaleString() %></div>
+                                    <div class="small text-muted">Total View</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr class="my-3">
+                        
+                        <div class="row g-2 text-center">
+                            <div class="col-3">
+                                <div class="bg-light p-2 rounded">
+                                    <div class="fw-bold text-danger small"><%= (totals?.like || 0).toLocaleString() %></div>
+                                    <div class="small text-muted">Like</div>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="bg-light p-2 rounded">
+                                    <div class="fw-bold text-success small"><%= (totals?.comment || 0).toLocaleString() %></div>
+                                    <div class="small text-muted">Comment</div>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="bg-light p-2 rounded">
+                                    <div class="fw-bold text-info small"><%= (totals?.share || 0).toLocaleString() %></div>
+                                    <div class="small text-muted">Share</div>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="bg-light p-2 rounded">
+                                    <div class="fw-bold text-warning small"><%= (totals?.save || 0).toLocaleString() %></div>
+                                    <div class="small text-muted">Save</div>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="bg-light p-2 rounded">
+                                    <div class="fw-bold text-secondary small"><%= (totals?.follower || 0).toLocaleString() %></div>
+                                    <div class="small text-muted">Followers</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <% } %>
-
-        <!-- Summary Statistics Cards (Kompak) -->
-        <div class="<%= (isCompare && followerChartData) ? 'col-lg-6' : 'col-12' %>">
-            <div class="card h-100">
-                <div class="card-header bg-secondary text-white">
-                    <h6 class="mb-0">
-                        <i class="bi bi-list-ul me-2"></i>
-                        Ringkasan Statistik
-                    </h6>
-                </div>
-                <div class="card-body">
-                    <div class="row g-2 text-center">
-                        <div class="col-4">
-                            <div class="bg-light p-2 rounded">
-                                <div class="fw-bold text-primary"><%= totalPostingan %></div>
-                                <div class="small text-muted">Posts</div>
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            <div class="bg-light p-2 rounded">
-                                <div class="fw-bold text-success"><%= (averageER || 0).toFixed(2) %>%</div>
-                                <div class="small text-muted">Avg ER</div>
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            <div class="bg-light p-2 rounded">
-                                <div class="fw-bold text-info"><%= (totals?.view || 0).toLocaleString() %></div>
-                                <div class="small text-muted">Total View</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <hr class="my-3">
-                    
-                    <div class="row g-2 text-center">
-                        <div class="col-3">
-                            <div class="bg-light p-2 rounded">
-                                <div class="fw-bold text-danger small"><%= (totals?.like || 0).toLocaleString() %></div>
-                                <div class="small text-muted">Like</div>
-                            </div>
-                        </div>
-                        <div class="col-3">
-                            <div class="bg-light p-2 rounded">
-                                <div class="fw-bold text-success small"><%= (totals?.comment || 0).toLocaleString() %></div>
-                                <div class="small text-muted">Comment</div>
-                            </div>
-                        </div>
-                        <div class="col-3">
-                            <div class="bg-light p-2 rounded">
-                                <div class="fw-bold text-info small"><%= (totals?.share || 0).toLocaleString() %></div>
-                                <div class="small text-muted">Share</div>
-                            </div>
-                        </div>
-                        <div class="col-3">
-                            <div class="bg-light p-2 rounded">
-                                <div class="fw-bold text-warning small"><%= (totals?.save || 0).toLocaleString() %></div>
-                                <div class="small text-muted">Save</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Follower Info jika ada -->
-                    <% if (followerChange && followerChange.start !== null) { %>
-                    <hr class="my-3">
-                    <div class="text-center">
-                        <div class="fw-bold <%= followerChange.diff >= 0 ? 'text-success' : 'text-danger' %>">
-                            <%= followerChange.end.toLocaleString() %> Followers
-                        </div>
-                        <div class="small text-muted">
-                            <%= (followerChange.diff >= 0 ? '+' : '') + followerChange.diff.toLocaleString() %>
-                            <% if (followerChange.pct !== null) { %>
-                                (<%= (followerChange.pct >= 0 ? '+' : '') + followerChange.pct.toFixed(1) %>%)
-                            <% } %>
-                        </div>
-                    </div>
-                    <% } %>
-                </div>
-            </div>
+            <% } %>
         </div>
     </div>
-</div>
 
-        <!-- Period Info -->
-        <div class="row mt-4">
-            <div class="col-12">
-                <div class="card border-0 bg-light">
-                    <div class="card-body text-center py-3">
-                        <div class="text-muted small">
-                            <strong>Periode Report:</strong> 
-                            <%= start_date %> sampai <%= end_date %>
-                            <% if (isCompare) { %>
-                                • Mode: Perbandingan <%= monthlyData.length %> Bulan
-                            <% } else { %>
-                                • Mode: Normal
-                            <% } %>
-                            • Generated: <%= new Date().toLocaleDateString('id-ID', { 
-                                day: '2-digit', 
-                                month: 'long', 
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                            }) %>
-                        </div>
+    <!-- Period Info -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-0 bg-light">
+                <div class="card-body text-center py-3">
+                    <div class="text-muted small">
+                        <strong>Periode Report:</strong> 
+                        <%= start_date %> sampai <%= end_date %>
+                        <% if (isCompare) { %>
+                            • Mode: Perbandingan <%= monthlyData.length %> Bulan
+                        <% } else { %>
+                            • Mode: Normal
+                        <% } %>
+                        • Generated: <%= new Date().toLocaleDateString('id-ID', { 
+                            day: '2-digit', 
+                            month: 'long', 
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        }) %>
                     </div>
                 </div>
             </div>
@@ -650,141 +614,95 @@
     <div style="height: 50px;"></div>
 
     <!-- Chart Initialization Script -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Chart configuration untuk PDF/Print friendly
-    Chart.defaults.font.size = 11;
-    Chart.defaults.responsive = true;
-    Chart.defaults.maintainAspectRatio = false;
-    
-    const printMode = window.matchMedia('print');
-    
-    // Main Metrics Chart
-    const chartData = JSON.parse('<%- chartData || "null" %>');
-    if (chartData && document.getElementById('metricsChart')) {
-        const ctx = document.getElementById('metricsChart').getContext('2d');
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Chart configuration untuk PDF/Print friendly
+        Chart.defaults.font.size = 11;
+        Chart.defaults.responsive = true;
+        Chart.defaults.maintainAspectRatio = false;
         
-        const config = {
-            type: 'line',
-            data: chartData,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'bottom',
-                        labels: {
-                            boxWidth: 12,
-                            padding: 15,
-                            font: { size: 10 }
+        const printMode = window.matchMedia('print');
+        
+        // Main Metrics Chart
+        const chartData = JSON.parse('<%- chartData || "null" %>');
+        if (chartData && document.getElementById('metricsChart')) {
+            const ctx = document.getElementById('metricsChart').getContext('2d');
+            
+            const config = {
+                type: 'line',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 15,
+                                font: { size: 10 }
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            titleFont: { size: 11 },
+                            bodyFont: { size: 10 }
                         }
                     },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                        titleFont: { size: 11 },
-                        bodyFont: { size: 10 }
-                    }
-                },
-                scales: {
-                    x: {
-                        display: true,
-                        grid: { display: false },
-                        ticks: { 
-                            font: { size: 9 },
-                            maxRotation: 45
-                        }
-                    },
-                    y: {
-                        type: 'linear',
-                        display: true,
-                        position: 'left',
-                        grid: { color: '#e9ecef' },
-                        ticks: { 
-                            font: { size: 9 },
-                            callback: function(value) {
-                                return value >= 1000 ? (value/1000).toFixed(1) + 'k' : value;
+                    scales: {
+                        x: {
+                            display: true,
+                            grid: { display: false },
+                            ticks: { 
+                                font: { size: 9 },
+                                maxRotation: 45
+                            }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            grid: { color: '#e9ecef' },
+                            ticks: { 
+                                font: { size: 9 },
+                                callback: function(value) {
+                                    return value >= 1000 ? (value/1000).toFixed(1) + 'k' : value;
+                                }
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            grid: { drawOnChartArea: false },
+                            ticks: { 
+                                font: { size: 9 },
+                                callback: function(value) {
+                                    return value.toFixed(1) + '%';
+                                }
                             }
                         }
                     },
-                    y1: {
-                        type: 'linear',
-                        display: true,
-                        position: 'right',
-                        grid: { drawOnChartArea: false },
-                        ticks: { 
-                            font: { size: 9 },
-                            callback: function(value) {
-                                return value.toFixed(1) + '%';
+                    elements: {
+                        point: { radius: 3, hoverRadius: 5 },
+                        line: { borderWidth: 2 }
+                    },
+                    // Print-specific settings
+                    animation: {
+                        onComplete: function() {
+                            if (printMode.matches) {
+                                this.options.animation = false;
                             }
-                        }
-                    }
-                },
-                elements: {
-                    point: { radius: 3, hoverRadius: 5 },
-                    line: { borderWidth: 2 }
-                },
-                // Print-specific settings
-                animation: {
-                    onComplete: function() {
-                        if (printMode.matches) {
-                            this.options.animation = false;
                         }
                     }
                 }
-            }
-        };
-        
-        new Chart(ctx, config);
-    }
-    
-    // Follower Chart (untuk comparison mode)
-    const followerData = JSON.parse('<%- followerChartData || "null" %>');
-    if (followerData && document.getElementById('followerChart')) {
-        const ctx2 = document.getElementById('followerChart').getContext('2d');
-        
-        new Chart(ctx2, {
-            type: 'line',
-            data: followerData,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return 'Followers: ' + context.parsed.y.toLocaleString();
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        display: true,
-                        grid: { display: false },
-                        ticks: { font: { size: 9 } }
-                    },
-                    y: {
-                        display: true,
-                        grid: { color: '#e9ecef' },
-                        ticks: { 
-                            font: { size: 9 },
-                            callback: function(value) {
-                                return value >= 1000 ? (value/1000).toFixed(1) + 'k' : value;
-                            }
-                        }
-                    }
-                },
-                elements: {
-                    point: { radius: 4 },
-                    line: { borderWidth: 3 }
-                }
-            }
-        });
-    }
-});
-</script>
+            };
+            
+            new Chart(ctx, config);
+        }
+    });
+    </script>
 </body>
 </html>

@@ -801,7 +801,7 @@ router.get('/print/export', async (req, res) => {
 
     let reports = [];
     let monthlyData = [];
-    let totals = { view: 0, like: 0, comment: 0, share: 0, save: 0 };
+    let totals = { view: 0, like: 0, comment: 0, share: 0, save: 0, follower: 0 };
     let followerChange = { start: null, end: null, diff: null, pct: null };
     let metricChange = {};
     let averageER = 0;
@@ -1016,6 +1016,10 @@ router.get('/print/export', async (req, res) => {
         totals.comment += monthTotals.comment;
         totals.share += monthTotals.share;
         totals.save += monthTotals.save;
+        // Track latest follower count (not sum)
+        if (followerCount !== null) {
+          totals.follower = followerCount; // Use latest follower count
+        }
         totalPostingan += monthReports.length;
       }
 
@@ -1162,7 +1166,33 @@ router.get('/print/export', async (req, res) => {
         acc.share += Number(r.share_count || 0);
         acc.save += Number(r.save_count || 0);
         return acc;
-      }, { view: 0, like: 0, comment: 0, share: 0, save: 0 });
+      }, { view: 0, like: 0, comment: 0, share: 0, save: 0, follower: 0 });
+
+      // Get follower count for the month of end_date
+      try {
+        const endDate = new Date(actualEndDate);
+        const year = endDate.getFullYear();
+        const month = endDate.getMonth() + 1;
+
+        const [followerData] = await db.query(`
+          SELECT follower_count
+          FROM followers
+          WHERE platform = 'tiktok'
+            AND YEAR(recorded_date) = ?
+            AND MONTH(recorded_date) = ?
+          ORDER BY recorded_date DESC
+          LIMIT 1
+        `, [year, month]);
+
+        if (followerData.length > 0) {
+          totals.follower = Number(followerData[0].follower_count);
+          console.log(`👥 Follower count for ${year}-${month}:`, totals.follower);
+        } else {
+          console.log(`❌ No follower data found for ${year}-${month}`);
+        }
+      } catch (followerError) {
+        console.error('Error getting follower count for month:', followerError);
+      }
 
       // Calculate metric changes (first vs last post)
       const sortedByDate = singleReports

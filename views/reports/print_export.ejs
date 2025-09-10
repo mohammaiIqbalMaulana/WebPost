@@ -8,11 +8,17 @@
         @media print {
             .no-print { display: none !important; }
             a[href]:after { content: "" !important; }
-            body { font-size: 12px; }
-            .table { font-size: 11px; }
-            .card { break-inside: avoid; }
+            body { font-size: 12px; margin: 0.5cm; }
+            .table { font-size: 11px; max-width: 100% !important; }
+            .table-responsive {
+                overflow-x: visible !important;
+                -webkit-overflow-scrolling: touch;
+                -ms-overflow-style: -ms-autohiding-scrollbar;
+                max-width: 100% !important;
+            }
+            .card { break-inside: avoid; max-width: 100% !important; }
             h3, h4, h5 { page-break-after: avoid; }
-            .thumb { max-width: 80px; max-height: 80px; }
+            .thumb { max-width: 80px; max-height: 80px; width: auto; height: auto; }
             .alert { background: #f8f9fa !important; border: 1px solid #dee2e6 !important; }
             
             /* Page break rules for better PDF layout */
@@ -35,6 +41,7 @@
                 break-inside: avoid;
                 page-break-inside: avoid;
                 margin-bottom: 1rem;
+                max-width: 100% !important;
             }
             
             canvas {
@@ -46,6 +53,7 @@
             .card {
                 border: 1px solid #dee2e6 !important;
                 box-shadow: none !important;
+                max-width: 100% !important;
             }
             
             .card-header {

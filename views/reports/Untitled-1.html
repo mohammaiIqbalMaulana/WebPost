@@ -139,6 +139,7 @@
 }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
     <script>
         window.addEventListener('load', () => {
             // Fungsi untuk mengatur bar progress
@@ -212,118 +213,192 @@
         <div class="text-center mb-4">
             <h2 class="fw-bold">📊 Laporan Perbandingan Insight</h2>
             <div class="text-muted">
-                <strong><%= monthlyData.length %> Bulan Terakhir</strong> •
-                <%= start_date %> s/d <%= end_date %> •
+                <strong><%= monthlyData.length %> Bulan Terakhir</strong> • 
+                <%= start_date %> s/d <%= end_date %> • 
                 Total <strong><%= totalPostingan %></strong> postingan
             </div>
         </div>
 
-        <!-- Percentage Change Section (1 month before comparison) -->
-        <% if (monthlyData.length >= 2) { %>
-            <% const lastMonth = monthlyData[monthlyData.length - 1]; %>
-            <% const prevMonth = monthlyData[monthlyData.length - 2]; %>
-            <% if (lastMonth.metricChanges) { %>
-                <div class="card mb-4">
-                    <div class="card-header bg-info text-white">
-                        <h6 class="mb-0">
-                            <i class="bi bi-arrow-up-down me-2"></i>
-                            Perubahan Persentase: <%= lastMonth.monthName %> vs <%= prevMonth.monthName %>
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="row g-3">
-                            <% if (Array.isArray(insights) ? insights.includes('view') : true) { %>
-                                <div class="col-md-4 col-sm-6">
-                                    <div class="text-center">
-                                        <div class="small text-muted">View</div>
-                                        <div class="small text-muted mb-1">
-                                            <%= prevMonth.totals.view.toLocaleString() %> → <%= lastMonth.totals.view.toLocaleString() %>
-                                        </div>
-                                        <div class="h5 mb-0 <%= lastMonth.metricChanges.view >= 0 ? 'text-success' : 'text-danger' %>">
-                                            <%= (lastMonth.metricChanges.view >= 0 ? '+' : '') + lastMonth.metricChanges.view.toFixed(1) %>%
-                                        </div>
-                                    </div>
-                                </div>
-                            <% } %>
-                            <% if (Array.isArray(insights) ? insights.includes('like') : true) { %>
-                                <div class="col-md-4 col-sm-6">
-                                    <div class="text-center">
-                                        <div class="small text-muted">Like</div>
-                                        <div class="small text-muted mb-1">
-                                            <%= prevMonth.totals.like.toLocaleString() %> → <%= lastMonth.totals.like.toLocaleString() %>
-                                        </div>
-                                        <div class="h5 mb-0 <%= lastMonth.metricChanges.like >= 0 ? 'text-success' : 'text-danger' %>">
-                                            <%= (lastMonth.metricChanges.like >= 0 ? '+' : '') + lastMonth.metricChanges.like.toFixed(1) %>%
-                                        </div>
-                                    </div>
-                                </div>
-                            <% } %>
-                            <% if (Array.isArray(insights) ? insights.includes('comment') : true) { %>
-                                <div class="col-md-4 col-sm-6">
-                                    <div class="text-center">
-                                        <div class="small text-muted">Comment</div>
-                                        <div class="small text-muted mb-1">
-                                            <%= prevMonth.totals.comment.toLocaleString() %> → <%= lastMonth.totals.comment.toLocaleString() %>
-                                        </div>
-                                        <div class="h5 mb-0 <%= lastMonth.metricChanges.comment >= 0 ? 'text-success' : 'text-danger' %>">
-                                            <%= (lastMonth.metricChanges.comment >= 0 ? '+' : '') + lastMonth.metricChanges.comment.toFixed(1) %>%
-                                        </div>
-                                    </div>
-                                </div>
-                            <% } %>
-                            <% if (Array.isArray(insights) ? insights.includes('share') : true) { %>
-                                <div class="col-md-4 col-sm-6">
-                                    <div class="text-center">
-                                        <div class="small text-muted">Share</div>
-                                        <div class="small text-muted mb-1">
-                                            <%= prevMonth.totals.share.toLocaleString() %> → <%= lastMonth.totals.share.toLocaleString() %>
-                                        </div>
-                                        <div class="h5 mb-0 <%= lastMonth.metricChanges.share >= 0 ? 'text-success' : 'text-danger' %>">
-                                            <%= (lastMonth.metricChanges.share >= 0 ? '+' : '') + lastMonth.metricChanges.share.toFixed(1) %>%
-                                        </div>
-                                    </div>
-                                </div>
-                            <% } %>
-                            <% if (Array.isArray(insights) ? insights.includes('save') : true) { %>
-                                <div class="col-md-4 col-sm-6">
-                                    <div class="text-center">
-                                        <div class="small text-muted">Save</div>
-                                        <div class="small text-muted mb-1">
-                                            <%= prevMonth.totals.save.toLocaleString() %> → <%= lastMonth.totals.save.toLocaleString() %>
-                                        </div>
-                                        <div class="h5 mb-0 <%= lastMonth.metricChanges.save >= 0 ? 'text-success' : 'text-danger' %>">
-                                            <%= (lastMonth.metricChanges.save >= 0 ? '+' : '') + lastMonth.metricChanges.save.toFixed(1) %>%
-                                        </div>
-                                    </div>
-                                </div>
-                            <% } %>
-                            <% if (Array.isArray(insights) ? insights.includes('er') : true) { %>
-                                <div class="col-md-4 col-sm-6">
-                                    <div class="text-center">
-                                        <div class="small text-muted">ER Rata-rata</div>
-                                        <div class="small text-muted mb-1">
-                                            <%= prevMonth.averageER.toFixed(2) %>% → <%= lastMonth.averageER.toFixed(2) %>%
-                                        </div>
-                                        <div class="h5 mb-0 <%= lastMonth.metricChanges.averageER >= 0 ? 'text-success' : 'text-danger' %>">
-                                            <%= (lastMonth.metricChanges.averageER >= 0 ? '+' : '') + lastMonth.metricChanges.averageER.toFixed(1) %>%
-                                        </div>
-                                    </div>
-                                </div>
-                            <% } %>
-                        </div>
-                        <div class="text-center mt-3">
-                            <small class="text-muted">
-                                Rumus: (Bulan Terakhir - Bulan Sebelumnya) / Bulan Sebelumnya × 100%
+        <!-- Monthly Cards Overview -->
+        <div class="row mb-5">
+            <% monthlyData.forEach((month, index) => { %>
+                <div class="col-lg-<%= Math.floor(12 / Math.min(monthlyData.length, 4)) %> col-md-6 mb-4">
+                    <div class="card month-card <%= month.hasPosts ? 'has-data' : 'no-data' %> h-100">
+                        <div class="card-header text-center <%= month.hasPosts ? 'bg-success text-white' : 'bg-warning text-dark' %>">
+                            <h5 class="mb-1"><%= month.monthName %></h5>
+                            <small>
+                                <%= month.postCount %> postingan
+                                <% if (month.followerCount !== null) { %>
+                                    • <%= month.followerCount.toLocaleString() %> follower
+                                <% } %>
                             </small>
+                        </div>
+                        <div class="card-body text-center">
+                            <% if (month.hasPosts) { %>
+                                <div class="row g-2">
+                                    <% if (Array.isArray(insights) ? insights.includes('view') : true) { %>
+                                        <div class="col-6">
+                                            <div class="text-muted small">View</div>
+                                            <div class="fw-bold text-primary"><%= month.totals.view.toLocaleString() %></div>
+                                        </div>
+                                    <% } %>
+                                    <% if (Array.isArray(insights) ? insights.includes('like') : true) { %>
+                                        <div class="col-6">
+                                            <div class="text-muted small">Like</div>
+                                            <div class="fw-bold text-danger"><%= month.totals.like.toLocaleString() %></div>
+                                        </div>
+                                    <% } %>
+                                    <% if (Array.isArray(insights) ? insights.includes('comment') : true) { %>
+                                        <div class="col-6">
+                                            <div class="text-muted small">Comment</div>
+                                            <div class="fw-bold text-success"><%= month.totals.comment.toLocaleString() %></div>
+                                        </div>
+                                    <% } %>
+                                    <% if (Array.isArray(insights) ? insights.includes('share') : true) { %>
+                                        <div class="col-6">
+                                            <div class="text-muted small">Share</div>
+                                            <div class="fw-bold text-info"><%= month.totals.share.toLocaleString() %></div>
+                                        </div>
+                                    <% } %>
+                                    <% if (Array.isArray(insights) ? insights.includes('save') : true) { %>
+                                        <div class="col-6">
+                                            <div class="text-muted small">Save</div>
+                                            <div class="fw-bold text-warning"><%= month.totals.save.toLocaleString() %></div>
+                                        </div>
+                                    <% } %>
+                                    <% if (Array.isArray(insights) ? insights.includes('er') : true) { %>
+                                        <div class="col-12 mt-2">
+                                            <div class="text-muted small">ER Rata-rata</div>
+                                            <div class="h5 mb-0 text-dark">
+                                                <span class="badge bg-primary fs-6"><%= month.averageER.toFixed(2) %>%</span>
+                                            </div>
+                                        </div>
+                                    <% } %>
+                                </div>
+                            <% } else { %>
+                                <div class="text-muted">
+                                    <i class="bi bi-calendar-x fs-3 d-block mb-2"></i>
+                                    <small>Tidak ada postingan<br>di bulan ini</small>
+                                </div>
+                            <% } %>
                         </div>
                     </div>
                 </div>
+            <% }) %>
+        </div>
+
+        <!-- Detail Posts per Month -->
+        <% monthlyData.forEach((month, monthIndex) => { %>
+            <% if (month.hasPosts) { %>
+                <div class="mb-5 monthly-table-section">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h4 class="mb-0">
+                            <span class="badge bg-success me-2"><%= monthIndex + 1 %></span>
+                            <%= month.monthName %>
+                        </h4>
+                        <span class="badge text-bg-light border">
+                            <%= month.postCount %> postingan • 
+                            ER: <%= month.averageER.toFixed(2) %>%
+                        </span>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th width="50" class="text-center">No</th>
+                                    <th>Detail Post</th>
+                                    <th width="120">Tanggal</th>
+                                    <th width="200">Insight</th>
+                                    <th width="100">Status</th>
+                                    <% if (includeThumbs) { %>
+                                        <th width="120" class="text-center">Konten</th>
+                                    <% } %>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            <% month.reports.forEach((r, i)=> { %>
+                                <tr>
+                                    <td class="text-center fw-bold"><%= i+1 %></td>
+                                    <td>
+                                        <div class="fw-semibold mb-1" style="font-size: 0.9rem;"><%= r.judul %></div>
+                                        <div style="font-size: 0.75rem;">
+                                            <a href="<%= r.post_url %>" class="text-decoration-none text-muted" target="_blank">
+                                                <i class="bi bi-link-45deg me-1"></i>
+                                                <%= r.post_url.length > 50 ? r.post_url.substring(0, 50) + '...' : r.post_url %>
+                                            </a>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <div style="font-size: 0.8rem;">
+                                            <%= typeof formatDate === 'function' ? formatDate(r.post_date) : new Date(r.post_date).toLocaleDateString('id-ID') %>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <%
+                                          const like = r.like_count || 0;
+                                          const comment = r.comment_count || 0;
+                                          const share = r.share_count || 0;
+                                          const save = r.save_count || 0;
+                                          const view = r.view_count || 1;
+                                          const er = ((like + comment + share + save) / view * 100);
+                                        %>
+                                        <div style="font-size: 0.8rem; line-height: 1.3;">
+                                            <% if (Array.isArray(insights) ? insights.includes('view') : true) { %>
+                                              <div><strong>View:</strong> <%= view.toLocaleString() %></div>
+                                            <% } %>
+                                            <% if (Array.isArray(insights) ? insights.includes('like') : true) { %>
+                                              <div><strong>Like:</strong> <%= like.toLocaleString() %></div>
+                                            <% } %>
+                                            <% if (Array.isArray(insights) ? insights.includes('comment') : true) { %>
+                                              <div><strong>Comment:</strong> <%= comment.toLocaleString() %></div>
+                                            <% } %>
+                                            <% if (Array.isArray(insights) ? insights.includes('share') : true) { %>
+                                              <div><strong>Share:</strong> <%= share.toLocaleString() %></div>
+                                            <% } %>
+                                            <% if (Array.isArray(insights) ? insights.includes('save') : true) { %>
+                                              <div><strong>Save:</strong> <%= save.toLocaleString() %></div>
+                                            <% } %>
+                                            <% if (Array.isArray(insights) ? insights.includes('er') : true) { %>
+                                              <div class="mt-1">
+                                                <span class="badge bg-primary" style="font-size: 0.7rem;">
+                                                  ER: <%= er.toFixed(2) %>%
+                                                </span>
+                                              </div>
+                                            <% } %>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <% if (r.status === 'valid') { %>
+                                            <span class="badge bg-success px-2 py-1">
+                                                <i class="bi bi-check-circle-fill me-1"></i>Valid
+                                            </span>
+                                        <% } else { %>
+                                            <span class="badge bg-warning text-dark px-2 py-1">
+                                                <i class="bi bi-clock-fill me-1"></i>Running
+                                            </span>
+                                        <% } %>
+                                    </td>
+                                    <% if (includeThumbs) { %>
+                                    <td class="text-center">
+                                        <% if (r.image_path) { %>
+                                            <img src="/<%= r.image_path %>" class="thumb border rounded shadow-sm" alt="Content" />
+                                        <% } else { %>
+                                            <div class="text-muted small">
+                                                <i class="bi bi-image"></i><br>
+                                                No Image
+                                            </div>
+                                        <% } %>
+                                    </td>
+                                    <% } %>
+                                </tr>
+                            <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             <% } %>
-        <% } %>
-
-
-
-
+        <% }) %>
 
     <% } else { %>
         <!-- NORMAL MODE -->
@@ -457,66 +532,66 @@
                         <% } %>
                     </h6>
                 </div>
-                    <div class="card-body">
-                        <div class="chart-container" style="position: relative; height: 300px; max-width: 100%; overflow-x: auto;">
-                            <canvas id="metricsChart"></canvas>
-                        </div>
-                        
-                        <!-- Chart Legend Info -->
-                        <div class="mt-3">
-                            <div class="row text-center">
-                                <% if (Array.isArray(insights) ? insights.includes('view') : true) { %>
-                                    <div class="col">
-                                        <div class="small">
-                                            <div class="d-inline-block bg-primary" style="width: 12px; height: 3px; margin-right: 5px;"></div>
-                                            View
-                                        </div>
+                <div class="card-body">
+                    <div class="chart-container" style="position: relative; height: 400px;">
+                        <canvas id="metricsChart"></canvas>
+                    </div>
+                    
+                    <!-- Chart Legend Info -->
+                    <div class="mt-3">
+                        <div class="row text-center">
+                            <% if (Array.isArray(insights) ? insights.includes('view') : true) { %>
+                                <div class="col">
+                                    <div class="small">
+                                        <div class="d-inline-block bg-primary" style="width: 12px; height: 3px; margin-right: 5px;"></div>
+                                        View
                                     </div>
-                                <% } %>
-                                <% if (Array.isArray(insights) ? insights.includes('like') : true) { %>
-                                    <div class="col">
-                                        <div class="small">
-                                            <div class="d-inline-block bg-danger" style="width: 12px; height: 3px; margin-right: 5px;"></div>
-                                            Like
-                                        </div>
+                                </div>
+                            <% } %>
+                            <% if (Array.isArray(insights) ? insights.includes('like') : true) { %>
+                                <div class="col">
+                                    <div class="small">
+                                        <div class="d-inline-block bg-danger" style="width: 12px; height: 3px; margin-right: 5px;"></div>
+                                        Like
                                     </div>
-                                <% } %>
-                                <% if (Array.isArray(insights) ? insights.includes('comment') : true) { %>
-                                    <div class="col">
-                                        <div class="small">
-                                            <div class="d-inline-block bg-success" style="width: 12px; height: 3px; margin-right: 5px;"></div>
-                                            Comment
-                                        </div>
+                                </div>
+                            <% } %>
+                            <% if (Array.isArray(insights) ? insights.includes('comment') : true) { %>
+                                <div class="col">
+                                    <div class="small">
+                                        <div class="d-inline-block bg-success" style="width: 12px; height: 3px; margin-right: 5px;"></div>
+                                        Comment
                                     </div>
-                                <% } %>
-                                <% if (Array.isArray(insights) ? insights.includes('share') : true) { %>
-                                    <div class="col">
-                                        <div class="small">
-                                            <div class="d-inline-block bg-info" style="width: 12px; height: 3px; margin-right: 5px;"></div>
-                                            Share
-                                        </div>
+                                </div>
+                            <% } %>
+                            <% if (Array.isArray(insights) ? insights.includes('share') : true) { %>
+                                <div class="col">
+                                    <div class="small">
+                                        <div class="d-inline-block bg-info" style="width: 12px; height: 3px; margin-right: 5px;"></div>
+                                        Share
                                     </div>
-                                <% } %>
-                                <% if (Array.isArray(insights) ? insights.includes('save') : true) { %>
-                                    <div class="col">
-                                        <div class="small">
-                                            <div class="d-inline-block bg-warning" style="width: 12px; height: 3px; margin-right: 5px;"></div>
-                                            Save
-                                        </div>
+                                </div>
+                            <% } %>
+                            <% if (Array.isArray(insights) ? insights.includes('save') : true) { %>
+                                <div class="col">
+                                    <div class="small">
+                                        <div class="d-inline-block bg-warning" style="width: 12px; height: 3px; margin-right: 5px;"></div>
+                                        Save
                                     </div>
-                                <% } %>
-                                <% if (Array.isArray(insights) ? insights.includes('er') : true) { %>
-                                    <div class="col">
-                                        <div class="small">
-                                            <div class="d-inline-block" style="width: 12px; height: 3px; margin-right: 5px; background-color: #6f42c1;"></div>
-                                            ER (%)
-                                        </div>
+                                </div>
+                            <% } %>
+                            <% if (Array.isArray(insights) ? insights.includes('er') : true) { %>
+                                <div class="col">
+                                    <div class="small">
+                                        <div class="d-inline-block" style="width: 12px; height: 3px; margin-right: 5px; background-color: #6f42c1;"></div>
+                                        ER (%)
                                     </div>
-                                <% } %>
-                            </div>
+                                </div>
+                            <% } %>
                         </div>
                     </div>
                 </div>
+            </div>
         </div>
 
         <!-- Follower Chart (only for comparison mode with follower data) -->
@@ -685,6 +760,26 @@ document.addEventListener('DOMContentLoaded', function() {
                         intersect: false,
                         titleFont: { size: 11 },
                         bodyFont: { size: 10 }
+                    },
+                    datalabels: {
+                        display: true,
+                        color: '#444',
+                        font: {
+                            weight: 'bold',
+                            size: 10
+                        },
+                        formatter: function(value, context) {
+                            if (typeof value === 'number') {
+                                if (value >= 1000) {
+                                    return (value / 1000).toFixed(1) + 'k';
+                                }
+                                return value;
+                            }
+                            return value;
+                        },
+                        anchor: 'end',
+                        align: 'top',
+                        offset: -4
                     }
                 },
                 scales: {
@@ -733,7 +828,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }
                 }
-            }
+            },
+            plugins: [ChartDataLabels]
         };
         
         new Chart(ctx, config);
@@ -787,4 +883,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 </body>
-</html>
+</html> 

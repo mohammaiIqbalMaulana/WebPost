@@ -1000,7 +1000,7 @@ router.get('/print/export', async (req, res) => {
           monthER = erCount > 0 ? (erSum / erCount) : 0;
         }
 
-        monthlyData.push({
+      monthlyData.push({
           ...monthData,
           reports: monthReports,
           followerCount,
@@ -1017,6 +1017,31 @@ router.get('/print/export', async (req, res) => {
         totals.share += monthTotals.share;
         totals.save += monthTotals.save;
         totalPostingan += monthReports.length;
+      }
+
+      // Add logic for 1 month before comparison percentage change for each metric
+      if (monthlyData.length >= 2) {
+        // Calculate percentage change for the last month compared to the previous month
+        const lastMonth = monthlyData[monthlyData.length - 1];
+        const prevMonth = monthlyData[monthlyData.length - 2];
+
+        // Helper function to calculate percentage change
+        const calcPctChange = (current, previous) => {
+          if (previous === 0) {
+            return current === 0 ? 0 : 100;
+          }
+          return ((current - previous) / previous) * 100;
+        };
+
+        // Calculate percentage changes for each metric
+        lastMonth.metricChanges = {
+          view: calcPctChange(lastMonth.totals.view, prevMonth.totals.view),
+          like: calcPctChange(lastMonth.totals.like, prevMonth.totals.like),
+          comment: calcPctChange(lastMonth.totals.comment, prevMonth.totals.comment),
+          share: calcPctChange(lastMonth.totals.share, prevMonth.totals.share),
+          save: calcPctChange(lastMonth.totals.save, prevMonth.totals.save),
+          averageER: calcPctChange(lastMonth.averageER, prevMonth.averageER)
+        };
       }
 
       // Calculate follower change

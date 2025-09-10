@@ -20,18 +20,21 @@ function prepareChartData(reports, insights, mode = 'normal', monthlyData = null
     follower: '#20c997' // teal
   };
 
-  if (mode === 'normal') {
-    // Mode Normal: Data per post dengan tanggal
-    const chartData = {
-      labels: reports.map(r => new Date(r.post_date).toLocaleDateString('id-ID', { 
-        day: '2-digit', 
-        month: 'short' 
-      })),
-      datasets: []
-    };
+  const chartDataArray = [];
 
-    // Tambahkan dataset untuk setiap insight yang dipilih
+  if (mode === 'normal') {
+    // Mode Normal: Data per post dengan tanggal - return array of chartData, one per insight
+    const labels = reports.map(r => new Date(r.post_date).toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: 'short'
+    }));
+
     insights.forEach(insight => {
+      const chartData = {
+        labels: labels,
+        datasets: []
+      };
+
       if (insight === 'er') {
         // Hitung ER untuk setiap post
         const erData = reports.map(r => {
@@ -65,14 +68,15 @@ function prepareChartData(reports, insights, mode = 'normal', monthlyData = null
           tension: 0.3
         });
       }
-    });
 
-    return chartData;
+      chartDataArray.push({
+        insight: insight,
+        data: chartData
+      });
+    });
   } else {
     // Mode Perbandingan: Data per bulan - return array of chartData, one per insight
     const monthNames = monthlyData.map(m => m.monthName);
-    const chartDataArray = [];
-
     insights.forEach(insight => {
       const chartData = {
         labels: monthNames,
@@ -127,9 +131,9 @@ function prepareChartData(reports, insights, mode = 'normal', monthlyData = null
         data: chartData
       });
     });
-
-    return chartDataArray;
   }
+
+  return chartDataArray;
 }
 
 // Helper untuk follower chart data

@@ -1204,8 +1204,7 @@ router.get('/print/export', async (req, res) => {
       actualStartDate = start_date;
       actualEndDate = end_date;
       
-      console.log('🔧 MODE NORMAL AKTIF');
-      console.log('📅 Date range:', actualStartDate, 'to', actualEndDate);
+
 
       const [singleReports] = await db.query(`
         SELECT id, platform, judul, post_url, post_date, like_count, comment_count, view_count, share_count, save_count, image_path, status
@@ -1214,8 +1213,15 @@ router.get('/print/export', async (req, res) => {
         ORDER BY post_date DESC, created_at DESC
       `, [actualStartDate, actualEndDate]);
 
-      reports = singleReports;
-      console.log('📋 Found posts:', reports.length);
+  reports = singleReports;
+  const reportPlatforms = [...new Set(singleReports.map(r => r.platform))];
+  let platform = 'tiktok'; // default
+  if (reportPlatforms.length === 1) {
+    platform = reportPlatforms[0];
+  } else if (reportPlatforms.length > 1) {
+    platform = reportPlatforms[0];
+    console.warn('Multiple platforms found in reports, using first:', platform);
+  }
 
       // Aggregate totals
       totals = singleReports.reduce((acc, r) => {
@@ -1233,22 +1239,19 @@ router.get('/print/export', async (req, res) => {
         const year = endDate.getFullYear();
         const month = endDate.getMonth() + 1;
 
-        const [followerData] = await db.query(`
-          SELECT follower_count
-          FROM followers
-          WHERE platform = 'tiktok'
-            AND YEAR(recorded_date) = ?
-            AND MONTH(recorded_date) = ?
-          ORDER BY recorded_date DESC
-          LIMIT 1
-        `, [year, month]);
+    const [followerData] = await db.query(`
+      SELECT follower_count
+      FROM followers
+      WHERE platform = ?
+        AND YEAR(recorded_date) = ?
+        AND MONTH(recorded_date) = ?
+      ORDER BY recorded_date DESC
+      LIMIT 1
+    `, [platform, year, month]);
 
-        if (followerData.length > 0) {
-          totals.follower = Number(followerData[0].follower_count);
-          console.log(`👥 Follower count for ${year}-${month}:`, totals.follower);
-        } else {
-          console.log(`❌ No follower data found for ${year}-${month}`);
-        }
+    if (followerData.length > 0) {
+      totals.follower = Number(followerData[0].follower_count);
+    }
       } catch (followerError) {
         console.error('Error getting follower count for month:', followerError);
       }
@@ -1288,12 +1291,12 @@ router.get('/print/export', async (req, res) => {
 
       // Calculate follower change
       try {
-        const [followerData] = await db.query(`
-          SELECT follower_count, recorded_date
-          FROM followers
-          WHERE platform = 'tiktok' AND recorded_date BETWEEN ? AND ?
-          ORDER BY recorded_date ASC
-        `, [actualStartDate, actualEndDate]);
+    const [followerData] = await db.query(`
+      SELECT follower_count, recorded_date
+      FROM followers
+      WHERE platform = ? AND recorded_date BETWEEN ? AND ?
+      ORDER BY recorded_date ASC
+    `, [platform, actualStartDate, actualEndDate]);
 
         if (followerData.length >= 1) {
           const startFollower = Number(followerData[0].follower_count);
@@ -1545,6 +1548,9 @@ router.get('/print/export', async (req, res) => {
       chartData = prepareChartData(sortedReports, insights, 'normal');
     }
 
+    // Ensure chartData is always an array to prevent EJS errors
+    if (!chartData) chartData = [];
+
 
 
     res.render('reports/print_export', {
@@ -1625,16 +1631,24 @@ router.post('/save-formula', async (req, res) => {
 router.post('/update-target', async (req, res) => {
   try {
     const { report_id, target_engagement } = req.body;
-    
+
     if (!report_id || target_engagement === undefined) {
-      return res.redirect('/reports/analytics?target_saved=0&msg=Data%20tidak%20lengkap');
+      const errorMsg = 'Data tidak lengkap';
+      if (req.headers['x-requested-with'] === 'XMLHttpRequest') {
+        return res.status(400).json({ success: false, message: errorMsg });
+      }
+      return res.redirect('/reports/analytics?target_saved=0&msg=' + encodeURIComponent(errorMsg));
     }
 
     const targetValue = Number(target_engagement);
 
     // Validasi target harus > 0
     if (targetValue <= 0 || isNaN(targetValue)) {
-      return res.redirect('/reports/analytics?target_saved=0&msg=Target%20harus%20lebih%20besar%20dari%200');
+      const errorMsg = 'Target harus lebih besar dari 0';
+      if (req.headers['x-requested-with'] === 'XMLHttpRequest') {
+        return res.status(400).json({ success: false, message: errorMsg });
+      }
+      return res.redirect('/reports/analytics?target_saved=0&msg=' + encodeURIComponent(errorMsg));
     }
 
     // Check if target already exists
@@ -1644,23 +1658,27 @@ router.post('/update-target', async (req, res) => {
     );
 
     if (existingTarget && existingTarget.target_engagement !== null) {
-      return res.redirect('/reports/analytics?target_saved=0&msg=Target%20sudah%20ada.%20Gunakan%20tombol%20Reset%20untuk%20mengubah');
+      const errorMsg = 'Target sudah ada. Gunakan tombol Reset untuk mengubah';
+      if (req.headers['x-requested-with'] === 'XMLHttpRequest') {
+        return res.status(400).json({ success: false, message: errorMsg });
+      }
+      return res.redirect('/reports/analytics?target_saved=0&msg=' + encodeURIComponent(errorMsg));
     }
 
     // Get current engagement rate menggunakan formula custom
     const [formulas] = await db.query(
       "SELECT * FROM formula_settings WHERE is_active = TRUE ORDER BY id DESC LIMIT 1"
     );
-    
+
     const currentFormula = formulas.length > 0 ? formulas[0] : {
       engagement_formula: '(like_count + comment_count + share_count + save_count) / view_count * 100'
     };
 
     // Get current engagement rate
     const [[report]] = await db.query(`
-      SELECT 
+      SELECT
         platform, like_count, comment_count, view_count, share_count, save_count
-      FROM reports 
+      FROM reports
       WHERE id = ?
     `, [report_id]);
 
@@ -1673,13 +1691,13 @@ router.post('/update-target', async (req, res) => {
       formula = formula.replace(/view/g, report.view_count || 0);
       formula = formula.replace(/share/g, report.share_count || 0);
       formula = formula.replace(/save/g, report.save_count || 0);
-      
+
       // Get follower count dari tabel followers jika diperlukan
       if (formula.includes('follower')) {
         const followerCount = await getLatestFollowerCount(report.platform);
         formula = formula.replace(/follower/g, followerCount);
       }
-      
+
       engagementRate = eval(formula);
       engagementRate = isNaN(engagementRate) ? 0 : parseFloat(engagementRate); // TANPA toFixed(2)
     } catch (e) {
@@ -1698,10 +1716,24 @@ router.post('/update-target', async (req, res) => {
       [targetValue, targetAchievedDate, report_id]
     );
 
+    const successMsg = `Target ${targetValue}% berhasil disimpan`;
+    if (req.headers['x-requested-with'] === 'XMLHttpRequest') {
+      return res.json({
+        success: true,
+        message: successMsg,
+        target: targetValue,
+        engagement_rate: engagementRate,
+        target_achieved_date: targetAchievedDate
+      });
+    }
     return res.redirect(`/reports/analytics?target_saved=1&target=${encodeURIComponent(targetValue)}`);
   } catch (err) {
     console.error("Error updating target:", err);
-    return res.redirect('/reports/analytics?target_saved=0&msg=Gagal%20menyimpan%20target');
+    const errorMsg = 'Gagal menyimpan target';
+    if (req.headers['x-requested-with'] === 'XMLHttpRequest') {
+      return res.status(500).json({ success: false, message: errorMsg });
+    }
+    return res.redirect('/reports/analytics?target_saved=0&msg=' + encodeURIComponent(errorMsg));
   }
 });
 

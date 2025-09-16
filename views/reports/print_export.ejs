@@ -507,30 +507,38 @@
                             </h6>
                         </div>
                         <div class="card-body">
-                            <div class="row g-2 text-center">
-                                <div class="col-4">
+                            <!-- Overall Totals -->
+                            <div class="row g-2 text-center mb-4">
+                                <div class="col-3">
                                     <div class="bg-light p-2 rounded">
                                         <div class="fw-bold text-primary"><%= totalPostingan %></div>
                                         <div class="small text-muted">Posts</div>
                                     </div>
                                 </div>
-                                <div class="col-4">
+                                <div class="col-3">
                                     <div class="bg-light p-2 rounded">
                                         <div class="fw-bold text-success"><%= (averageER || 0).toFixed(2) %>%</div>
                                         <div class="small text-muted">Avg ER</div>
                                     </div>
                                 </div>
-                                <div class="col-4">
+                                <div class="col-3">
                                     <div class="bg-light p-2 rounded">
                                         <div class="fw-bold text-info"><%= (totals?.view || 0).toLocaleString() %></div>
-                                        <div class="small text-muted">Total View</div>
+                                        <div class="small text-muted">View</div>
+                                    </div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="bg-light p-2 rounded">
+                                        <div class="fw-bold text-secondary"><%= (totals?.follower || 0).toLocaleString() %></div>
+                                        <div class="small text-muted">Followers</div>
                                     </div>
                                 </div>
                             </div>
-                            
-                            <hr class="my-3">
-                            
-                            <div class="row g-2 text-center">
+
+                            <hr class="mb-3">
+
+                            <!-- Total Metrics -->
+                            <div class="row g-2 text-center mb-4">
                                 <div class="col-3">
                                     <div class="bg-light p-2 rounded">
                                         <div class="fw-bold text-danger small"><%= (totals?.like || 0).toLocaleString() %></div>
@@ -553,12 +561,6 @@
                                     <div class="bg-light p-2 rounded">
                                         <div class="fw-bold text-warning small"><%= (totals?.save || 0).toLocaleString() %></div>
                                         <div class="small text-muted">Save</div>
-                                    </div>
-                                </div>
-                                <div class="col-3">
-                                    <div class="bg-light p-2 rounded">
-                                        <div class="fw-bold text-secondary small"><%= (totals?.follower || 0).toLocaleString() %></div>
-                                        <div class="small text-muted">Followers</div>
                                     </div>
                                 </div>
                             </div>

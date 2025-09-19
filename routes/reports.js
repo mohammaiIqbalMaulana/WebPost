@@ -7,6 +7,20 @@ const path = require('path');
 const fs = require('fs');
 const ExcelJS = require('exceljs');
 
+// Helper function untuk menghitung hari terakhir bulan secara manual
+function getLastDayOfMonth(year, month) {
+  // month: 1-12 (Januari = 1, Desember = 12)
+  const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  
+  // Handle Februari untuk tahun kabisat
+  if (month === 2) {
+    const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+    return isLeapYear ? 29 : 28;
+  }
+  
+  return daysInMonth[month - 1];
+}
+
 // Helper function untuk format data chart
 function prepareChartData(reports, insights, mode = 'normal', monthlyData = null) {
   const colors = {
@@ -880,7 +894,8 @@ router.get('/print/export', async (req, res) => {
       }
       
       actualStartDate = `${startYear}-${String(startMonth).padStart(2, '0')}-01`;
-      actualEndDate = new Date(endYear, endMonthNum, 0).toISOString().split('T')[0];
+      const lastDayOfEndMonth = getLastDayOfMonth(endYear, endMonthNum);
+      actualEndDate = `${endYear}-${String(endMonthNum).padStart(2, '0')}-${String(lastDayOfEndMonth).padStart(2, '0')}`;
       
       console.log('📅 Calculated date range:');
       console.log('- actualStartDate:', actualStartDate);
@@ -892,6 +907,7 @@ router.get('/print/export', async (req, res) => {
       let currentMonth = startMonth;
 
       for (let i = 0; i < numMonths; i++) {
+        const lastDayOfMonth = getLastDayOfMonth(currentYear, currentMonth);
         const monthData = {
           year: currentYear,
           month: currentMonth,
@@ -900,7 +916,7 @@ router.get('/print/export', async (req, res) => {
             year: 'numeric' 
           }),
           startDate: `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`,
-          endDate: new Date(currentYear, currentMonth, 0).toISOString().split('T')[0]
+          endDate: `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(lastDayOfMonth).padStart(2, '0')}`
         };
         
         console.log(`📅 Month ${i + 1}:`, monthData);

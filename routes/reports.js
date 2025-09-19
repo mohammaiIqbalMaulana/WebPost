@@ -1554,7 +1554,7 @@ router.get('/print/export', async (req, res) => {
 
 
     res.render('reports/print_export', {
-      title: 'Cetak Report',
+      title: `📋 Laporan Insight Akun Tiktok @ppidsetdajateng Periode ${actualStartDate} sampai ${actualEndDate}`,
       reports,
       start_date: actualStartDate,
       end_date: actualEndDate,
@@ -1632,9 +1632,14 @@ router.post('/update-target', async (req, res) => {
   try {
     const { report_id, target_engagement } = req.body;
 
+    // Check if this is an AJAX request
+    const isAjax = req.headers['x-requested-with'] === 'XMLHttpRequest' ||
+                   req.headers.accept?.includes('application/json') ||
+                   req.headers['content-type']?.includes('application/json');
+
     if (!report_id || target_engagement === undefined) {
       const errorMsg = 'Data tidak lengkap';
-      if (req.headers['x-requested-with'] === 'XMLHttpRequest') {
+      if (isAjax) {
         return res.status(400).json({ success: false, message: errorMsg });
       }
       return res.redirect('/reports/analytics?target_saved=0&msg=' + encodeURIComponent(errorMsg));
@@ -1645,7 +1650,7 @@ router.post('/update-target', async (req, res) => {
     // Validasi target harus > 0
     if (targetValue <= 0 || isNaN(targetValue)) {
       const errorMsg = 'Target harus lebih besar dari 0';
-      if (req.headers['x-requested-with'] === 'XMLHttpRequest') {
+      if (isAjax) {
         return res.status(400).json({ success: false, message: errorMsg });
       }
       return res.redirect('/reports/analytics?target_saved=0&msg=' + encodeURIComponent(errorMsg));
@@ -1659,7 +1664,7 @@ router.post('/update-target', async (req, res) => {
 
     if (existingTarget && existingTarget.target_engagement !== null) {
       const errorMsg = 'Target sudah ada. Gunakan tombol Reset untuk mengubah';
-      if (req.headers['x-requested-with'] === 'XMLHttpRequest') {
+      if (isAjax) {
         return res.status(400).json({ success: false, message: errorMsg });
       }
       return res.redirect('/reports/analytics?target_saved=0&msg=' + encodeURIComponent(errorMsg));
@@ -1717,7 +1722,7 @@ router.post('/update-target', async (req, res) => {
     );
 
     const successMsg = `Target ${targetValue}% berhasil disimpan`;
-    if (req.headers['x-requested-with'] === 'XMLHttpRequest') {
+    if (isAjax) {
       return res.json({
         success: true,
         message: successMsg,
@@ -1730,7 +1735,8 @@ router.post('/update-target', async (req, res) => {
   } catch (err) {
     console.error("Error updating target:", err);
     const errorMsg = 'Gagal menyimpan target';
-    if (req.headers['x-requested-with'] === 'XMLHttpRequest') {
+    if (req.headers['x-requested-with'] === 'XMLHttpRequest' ||
+        req.headers.accept?.includes('application/json')) {
       return res.status(500).json({ success: false, message: errorMsg });
     }
     return res.redirect('/reports/analytics?target_saved=0&msg=' + encodeURIComponent(errorMsg));

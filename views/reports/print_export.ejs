@@ -9,7 +9,16 @@
             .no-print { display: none !important; }
             a[href]:after { content: "" !important; }
             body { font-size: 12px; margin: 0.5cm; }
-            .table { font-size: 11px; max-width: 100% !important; }
+            .table { font-size: 10px; max-width: 100% !important; }
+            /* Adjust font size proportionally for Detail Per Bulan table in print mode */
+            .card-body > .table-responsive > .table.table-sm.table-striped {
+                font-size: 19px !important;
+            }
+            /* Reduce font size for Bulan and Follower Growth columns */
+            .card-body > .table-responsive > .table.table-sm.table-striped td:first-child,
+            .card-body > .table-responsive > .table.table-sm.table-striped td:last-child {
+                font-size: 20px !important;
+            }
             .table-responsive {
                 overflow-x: visible !important;
                 -webkit-overflow-scrolling: touch;
@@ -42,6 +51,8 @@
                 page-break-inside: avoid;
                 margin-bottom: 1rem;
                 max-width: 100% !important;
+                max-height: 200px !important; /* Reduce height for PDF */
+                overflow: hidden !important; /* Cut off overflow */
             }
             
             canvas {
@@ -67,6 +78,36 @@
             .chart-container * {
                 print-color-adjust: exact;
                 -webkit-print-color-adjust: exact;
+            }
+
+            /* Center the Laporan title */
+            .text-center.mb-4 {
+                text-align: center !important;
+            }
+
+            /* Additional centering for PDF cover page title */
+            .text-center.mb-4 > h2, 
+            .text-center.mb-4 > h3 {
+                display: flex !important;
+                justify-content: center !important;
+                align-items: center !important;
+                height: 3rem;
+                margin: 0 auto;
+            }
+
+            /* Increase font size of summary statistics proportionally */
+            .card-header.bg-secondary.text-white h6,
+            .card-body .fw-bold,
+            .card-body .small {
+                font-size: 1.2rem !important;
+                white-space: nowrap;
+            }
+
+            /* Reduce chart card height and remove empty space */
+            .card > .card-body {
+                max-height: 210px !important;
+                overflow: hidden !important;
+                padding-bottom: 0 !important;
             }
         }
         @media screen {
@@ -189,16 +230,21 @@
         <div class="alert alert-info border-0 small">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <strong>Debug Info:</strong> 
-                    Mode: <%= isCompare ? 'Perbandingan' : 'Normal' %> | 
-                    Periode: <%= start_date %> s/d <%= end_date %> | 
-                    Posts: <%= totalPostingan %> | 
+                    <strong>Debug Info:</strong>
+                    Mode: <%= isCompare ? 'Perbandingan' : 'Normal' %> |
+                    Periode: <%= start_date %> s/d <%= end_date %> |
+                    Posts: <%= totalPostingan %> |
                     <% if (isCompare) { %>Bulan: <%= monthlyData.length %><% } %>
                 </div>
                 <div class="d-flex gap-2">
                     <a href="/reports/print" class="btn btn-sm btn-secondary">
                         <i class="bi bi-arrow-left me-1"></i>Kembali
                     </a>
+                    <% if (!isCompare) { %>
+                        <button class="btn btn-sm btn-danger" type="button" data-bs-toggle="collapse" data-bs-target="#postsCollapse" aria-expanded="false" aria-controls="postsCollapse">
+                            <i class="bi bi-list-ul me-1"></i>Tampilkan Posts
+                        </button>
+                    <% } %>
                     <button class="btn btn-sm btn-primary" onclick="window.print()">
                         <i class="bi bi-printer me-1"></i>Print
                     </button>
@@ -210,12 +256,15 @@
     <!-- Main Content -->
     <% if (isCompare && monthlyData && monthlyData.length > 0) { %>
         <!-- COMPARISON MODE -->
-        <div class="text-center mb-4">
-            <h2 class="fw-bold">📊 Laporan Perbandingan Insight</h2>
-            <div class="text-muted">
-                <strong><%= monthlyData.length %> Bulan Terakhir</strong> •
-                <%= start_date %> s/d <%= end_date %> •
-                Total <strong><%= totalPostingan %></strong> postingan
+        <div class="cover-page">
+            <div class="text-center mb-4">
+                <h2 class="fw-bold">📊 Laporan Perbandingan Insight</h2>
+                <h3>  Akun Tiktok @ppidsetdajateng </h3>
+                <div class="text-muted">
+                    <strong><%= monthlyData.length %> Bulan Terakhir</strong> •
+                    <%= start_date %> s/d <%= end_date %> •
+                    Total <strong><%= totalPostingan %></strong> postingan
+                </div>
             </div>
         </div>
 
@@ -340,112 +389,16 @@
 
     <% } else { %>
         <!-- NORMAL MODE -->
-        <div class="text-center mb-4">
-            <h2 class="fw-bold">📋 Laporan Periode</h2>
-            <div class="text-muted">
-                <strong><%= start_date %></strong> sampai <strong><%= end_date %></strong> • 
-                Total <strong><%= totalPostingan %></strong> postingan
+        <div class="cover-page">
+            <div class="text-center mb-4">
+                <h2 class="fw-bold">📋 Laporan Insight</h2>
+                <h3>Akun Tiktok @ppidsetdajateng</h3>
+                <div class="text-muted">
+                    <strong>Periode <%= start_date %></strong> sampai <strong><%= end_date %></strong> •
+                    Total <strong><%= totalPostingan %></strong> postingan
+                </div>
             </div>
         </div>
-
-        <% if (reports && reports.length > 0) { %>
-            <div class="table-responsive normal-table-section">
-                <table class="table table-bordered table-hover align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th width="50" class="text-center">No</th>
-                            <th>Detail Post</th>
-                            <th width="120">Tanggal</th>
-                            <th width="200">Insight</th>
-                            <th width="100">Status</th>
-                            <% if (includeThumbs) { %>
-                                <th width="120" class="text-center">Konten</th>
-                            <% } %>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    <% reports.forEach((r, i)=> { %>
-                        <tr>
-                            <td class="text-center fw-bold"><%= i+1 %></td>
-                            <td>
-                                <div class="fw-semibold mb-1"><%= r.judul %></div>
-                                <div class="small">
-                                    <a href="<%= r.post_url %>" class="text-decoration-none text-muted" target="_blank">
-                                        <i class="bi bi-link-45deg me-1"></i>
-                                        <%= r.post_url.length > 50 ? r.post_url.substring(0, 50) + '...' : r.post_url %>
-                                    </a>
-                                </div>
-                            </td>
-                            <td class="text-center">
-                                <%= typeof formatDate === 'function' ? formatDate(r.post_date) : new Date(r.post_date).toLocaleDateString('id-ID') %>
-                            </td>
-                            <td>
-                                <%
-                                  const like = r.like_count || 0;
-                                  const comment = r.comment_count || 0;
-                                  const share = r.share_count || 0;
-                                  const save = r.save_count || 0;
-                                  const view = r.view_count || 1;
-                                  const er = ((like + comment + share + save) / view * 100);
-                                %>
-                                <div class="small" style="line-height: 1.4;">
-                                    <% if (Array.isArray(insights) ? insights.includes('view') : true) { %>
-                                      <div><strong>👁️ View:</strong> <%= view.toLocaleString() %></div>
-                                    <% } %>
-                                    <% if (Array.isArray(insights) ? insights.includes('like') : true) { %>
-                                      <div><strong>❤️ Like:</strong> <%= like.toLocaleString() %></div>
-                                    <% } %>
-                                    <% if (Array.isArray(insights) ? insights.includes('comment') : true) { %>
-                                      <div><strong>💬 Comment:</strong> <%= comment.toLocaleString() %></div>
-                                    <% } %>
-                                    <% if (Array.isArray(insights) ? insights.includes('share') : true) { %>
-                                      <div><strong>🔄 Share:</strong> <%= share.toLocaleString() %></div>
-                                    <% } %>
-                                    <% if (Array.isArray(insights) ? insights.includes('save') : true) { %>
-                                      <div><strong>🔖 Save:</strong> <%= save.toLocaleString() %></div>
-                                    <% } %>
-                                    <% if (Array.isArray(insights) ? insights.includes('er') : true) { %>
-                                      <div class="mt-1">
-                                        <span class="badge bg-success">ER: <%= er.toFixed(2) %>%</span>
-                                      </div>
-                                    <% } %>
-                                </div>
-                            </td>
-                            <td class="text-center">
-                                <% if (r.status === 'valid') { %>
-                                    <span class="badge bg-success px-2 py-1">
-                                        <i class="bi bi-check-circle-fill me-1"></i>Valid
-                                    </span>
-                                <% } else { %>
-                                    <span class="badge bg-warning text-dark px-2 py-1">
-                                        <i class="bi bi-clock-fill me-1"></i>Running
-                                    </span>
-                                <% } %>
-                            </td>
-                            <% if (includeThumbs) { %>
-                            <td class="text-center">
-                                <% if (r.image_path) { %>
-                                    <img src="/<%= r.image_path %>" class="thumb border rounded shadow-sm" alt="Content" />
-                                <% } else { %>
-                                    <div class="text-muted small">
-                                        <i class="bi bi-image"></i><br>
-                                        No Image
-                                    </div>
-                                <% } %>
-                            </td>
-                            <% } %>
-                        </tr>
-                    <% }) %>
-                    </tbody>
-                </table>
-            </div>
-        <% } else { %>
-            <div class="alert alert-warning text-center">
-                <i class="bi bi-exclamation-triangle fs-2 d-block mb-2"></i>
-                <h5>Tidak ada data</h5>
-                <p class="mb-0">Tidak ditemukan postingan pada rentang tanggal <strong><%= start_date %></strong> sampai <strong><%= end_date %></strong></p>
-            </div>
-        <% } %>
     <% } %>
 
     <!-- Chart Visualization Section -->
@@ -592,6 +545,111 @@
         </div>
     </div>
 
+    <!-- Posts Section (Normal Mode Only) -->
+    <% if (!isCompare) { %>
+         <div class="collapse mt-5" id="postsCollapse">
+            <h4 class="mb-4">📋 Daftar Postingan</h4>
+            <% if (reports && reports.length > 0) { %>
+                <div class="table-responsive normal-table-section">
+                    <table class="table table-bordered table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="50" class="text-center">No</th>
+                                <th>Detail Post</th>
+                                <th width="120">Tanggal</th>
+                                <th width="200">Insight</th>
+                                <th width="100">Status</th>
+                                <% if (includeThumbs) { %>
+                                    <th width="120" class="text-center">Konten</th>
+                                <% } %>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <% reports.forEach((r, i)=> { %>
+                            <tr>
+                                <td class="text-center fw-bold"><%= i+1 %></td>
+                                <td>
+                                    <div class="fw-semibold mb-1"><%= r.judul %></div>
+                                    <div class="small">
+                                        <a href="<%= r.post_url %>" class="text-decoration-none text-muted" target="_blank">
+                                            <i class="bi bi-link-45deg me-1"></i>
+                                            <%= r.post_url.length > 50 ? r.post_url.substring(0, 50) + '...' : r.post_url %>
+                                        </a>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <%= typeof formatDate === 'function' ? formatDate(r.post_date) : new Date(r.post_date).toLocaleDateString('id-ID') %>
+                                </td>
+                                <td>
+                                    <%
+                                      const like = r.like_count || 0;
+                                      const comment = r.comment_count || 0;
+                                      const share = r.share_count || 0;
+                                      const save = r.save_count || 0;
+                                      const view = r.view_count || 1;
+                                      const er = ((like + comment + share + save) / view * 100);
+                                    %>
+                                    <div class="small" style="line-height: 1.4;">
+                                        <% if (Array.isArray(insights) ? insights.includes('view') : true) { %>
+                                          <div><strong>👁️ View:</strong> <%= view.toLocaleString() %></div>
+                                        <% } %>
+                                        <% if (Array.isArray(insights) ? insights.includes('like') : true) { %>
+                                          <div><strong>❤️ Like:</strong> <%= like.toLocaleString() %></div>
+                                        <% } %>
+                                        <% if (Array.isArray(insights) ? insights.includes('comment') : true) { %>
+                                          <div><strong>💬 Comment:</strong> <%= comment.toLocaleString() %></div>
+                                        <% } %>
+                                        <% if (Array.isArray(insights) ? insights.includes('share') : true) { %>
+                                          <div><strong>🔄 Share:</strong> <%= share.toLocaleString() %></div>
+                                        <% } %>
+                                        <% if (Array.isArray(insights) ? insights.includes('save') : true) { %>
+                                          <div><strong>🔖 Save:</strong> <%= save.toLocaleString() %></div>
+                                        <% } %>
+                                        <% if (Array.isArray(insights) ? insights.includes('er') : true) { %>
+                                          <div class="mt-1">
+                                            <span class="badge bg-success">ER: <%= er.toFixed(2) %>%</span>
+                                          </div>
+                                        <% } %>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <% if (r.status === 'valid') { %>
+                                        <span class="badge bg-success px-2 py-1">
+                                            <i class="bi bi-check-circle-fill me-1"></i>Valid
+                                        </span>
+                                    <% } else { %>
+                                        <span class="badge bg-warning text-dark px-2 py-1">
+                                            <i class="bi bi-clock-fill me-1"></i>Running
+                                        </span>
+                                    <% } %>
+                                </td>
+                                <% if (includeThumbs) { %>
+                                <td class="text-center">
+                                    <% if (r.image_path) { %>
+                                        <img src="/<%= r.image_path %>" class="thumb border rounded shadow-sm" alt="Content" />
+                                    <% } else { %>
+                                        <div class="text-muted small">
+                                            <i class="bi bi-image"></i><br>
+                                            No Image
+                                        </div>
+                                    <% } %>
+                                </td>
+                                <% } %>
+                            </tr>
+                        <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+            <% } else { %>
+                <div class="alert alert-warning text-center">
+                    <i class="bi bi-exclamation-triangle fs-2 d-block mb-2"></i>
+                    <h5>Tidak ada data</h5>
+                    <p class="mb-0">Tidak ditemukan postingan pada rentang tanggal <strong><%= start_date %></strong> sampai <strong><%= end_date %></strong></p>
+                </div>
+            <% } %>
+        </div>
+    <% } %>
+
     <!-- Period Info -->
     <div class="row mt-4">
         <div class="col-12">
@@ -624,6 +682,21 @@
     <!-- Chart Initialization Script -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Handle posts collapse button color change
+        const postsCollapse = document.getElementById('postsCollapse');
+        const toggleButton = document.querySelector('[data-bs-target="#postsCollapse"]');
+
+        if (postsCollapse && toggleButton) {
+            postsCollapse.addEventListener('show.bs.collapse', function () {
+                toggleButton.classList.remove('btn-warning', 'btn-danger');
+                toggleButton.classList.add('btn-success');
+            });
+
+            postsCollapse.addEventListener('hide.bs.collapse', function () {
+                toggleButton.classList.remove('btn-warning', 'btn-success');
+                toggleButton.classList.add('btn-danger');
+            });
+        }
         // Chart configuration untuk PDF/Print friendly
         Chart.defaults.font.size = 11;
         Chart.defaults.responsive = true;

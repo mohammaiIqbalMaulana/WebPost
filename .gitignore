@@ -1,3 +1,8 @@
 node_modules/
-public/uploads/
 db.js
+
+# Abaikan hanya uploads
+public/uploads/
+!public/images/
+!public/javascripts/
+!public/.gitkeep
